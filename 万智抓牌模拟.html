@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>万智牌·完全体模拟器 (主牌/备牌｜换备功能)</title>
+    <title>万智牌·完全体模拟器 (60岛屿默认｜主牌/备牌｜换备)</title>
     <style>
-        /* ========== 样式完全保留，追加换备面板样式 ========== */
+        /* ========== 样式完全保留 ========== */
         * {
             box-sizing: border-box;
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -396,7 +396,7 @@
 </head>
 <body>
     <div class="simulator">
-        <!-- 状态栏 (不变) -->
+        <!-- 状态栏 -->
         <div class="header">
             <div class="stats">
                 <div class="stats-item">📦 牌库 <span id="deckCount">53</span></div>
@@ -414,7 +414,7 @@
             <span class="card-name" id="lastDrawCard" data-cardname="">——</span>
         </div>
 
-        <!-- 搜索区域 (不变) -->
+        <!-- 搜索区域 -->
         <div class="search-area">
             <div class="search-header">
                 <input type="text" id="searchInput" class="search-input" placeholder="输入卡名搜索牌库 (不区分大小写, 模糊)">
@@ -432,7 +432,7 @@
             </div>
         </div>
 
-        <!-- 动态按钮区域 (不变) -->
+        <!-- 动态按钮区域 -->
         <div id="initialButtons" class="button-group" style="margin-bottom: 16px;">
             <button id="acceptInitialBtn">✅ 接受手牌 (开始游戏)</button>
             <button id="mulliganBtn">🔄 调度</button>
@@ -452,13 +452,13 @@
             <button id="drawBtn">⚡ 抓牌</button>
         </div>
 
-        <!-- 操作栏 (显示当前选中牌及移动选项) -->
+        <!-- 操作栏 -->
         <div class="action-bar" id="actionBar" style="display: none;">
             <div class="selected-info" id="selectedInfo">未选中任何牌</div>
             <div class="action-buttons" id="actionButtons"></div>
         </div>
 
-        <!-- 主要区域：手牌、战场、墓地、放逐区 -->
+        <!-- 主要区域 -->
         <div class="zones-container">
             <div class="zone">
                 <div class="zone-title">🃏 手牌 <span id="handCount2">0</span></div>
@@ -480,28 +480,15 @@
             </div>
         </div>
 
-        <!-- 卡组管理区域（增加换备按钮） -->
+        <!-- 卡组管理区域 -->
         <div class="deck-manager">
-            <textarea id="deckInput" class="deck-textarea" placeholder="输入自定义卡组，每行格式：数量 卡名。空行前为主牌，空行后为备牌。&#10;例如：&#10;4 Banishing Knack&#10;4 Dizzy Spell&#10;&#10;2 Island&#10;1 Mountain">4 Banishing Knack
-4 Dizzy Spell
-10 Island
-4 Lórien Revealed
-4 Molten Tributary
-4 Muddle the Mixture
-4 Reckless Fireweaver
-4 Retraction Helix
-4 Secret Door
-4 Sewer-veillance Cam
-4 Silver Myr
-2 Silverbluff Bridge
-4 Vedalken Engineer
-4 Welder Automaton</textarea>
+            <textarea id="deckInput" class="deck-textarea" placeholder="输入自定义卡组，每行格式：数量 卡名。空行前为主牌，空行后为备牌。&#10;例如：&#10;60 Island">60 Island</textarea>   <!-- 默认文本已改为60 Island -->
             <div class="button-group">
                 <button id="loadDeckBtn">📥 加载此卡组</button>
                 <button id="saveDeckBtn">💾 保存当前卡组</button>
-                <button id="defaultDeckBtn">🔄 恢复默认卡组</button>
+                <button id="defaultDeckBtn">🔄 恢复默认卡组 (60 Island)</button>
                 <button id="loadSavedBtn">📂 加载已保存的卡组</button>
-                <button id="sideboardBtn">🔄 换备</button>  <!-- 新增换备按钮 -->
+                <button id="sideboardBtn">🔄 换备</button>
             </div>
         </div>
 
@@ -523,7 +510,7 @@
             </div>
         </div>
 
-        <footer>点击任何牌可移动 · 搜索牌库后点击结果可操作 · 鼠标悬浮显示卡图 · 空行分隔主/备</footer>
+        <footer>点击任何牌可移动 · 搜索牌库后点击结果可操作 · 鼠标悬浮显示卡图 · 空行分隔主/备 作者:wzy007</footer>
     </div>
 
     <!-- 卡组选择对话框 -->
@@ -542,22 +529,9 @@
 
     <script>
         (function() {
-            // ---------- 默认卡组数据 (用于生成默认文本) ----------
+            // ---------- 默认卡组数据：现在为 60 Island ----------
             const DEFAULT_CARD_COUNTS = [
-                [4, "Banishing Knack"],
-                [4, "Dizzy Spell"],
-                [10, "Island"],
-                [4, "Lórien Revealed"],
-                [4, "Molten Tributary"],
-                [4, "Muddle the Mixture"],
-                [4, "Reckless Fireweaver"],
-                [4, "Retraction Helix"],
-                [4, "Secret Door"],
-                [4, "Sewer-veillance Cam"],
-                [4, "Silver Myr"],
-                [2, "Silverbluff Bridge"],
-                [4, "Vedalken Engineer"],
-                [4, "Welder Automaton"]
+                [60, "Island"]
             ];
 
             // ---------- 全局状态 ----------
@@ -701,7 +675,7 @@
                 updateUI();
             }
 
-            // 更新UI (原有逻辑基本不变，只增加备牌相关不影响)
+            // 更新UI
             function updateUI(lastDrawn = null) {
                 document.getElementById('deckCount').textContent = deck.length;
                 document.getElementById('handCount').textContent = hand.length;
@@ -928,7 +902,7 @@
             }
 
             // ========== 换备功能 ==========
-            let tempMainboard = [], tempSideboard = [];  // 临时编辑
+            let tempMainboard = [], tempSideboard = [];
 
             function renderSideboardPanel() {
                 const mainDiv = document.getElementById('panelMainCards');
@@ -941,7 +915,6 @@
                     cardDiv.dataset.cardname = card;
                     cardDiv.textContent = card;
                     cardDiv.addEventListener('click', () => {
-                        // 从主牌移出一张到备牌
                         tempMainboard.splice(idx, 1);
                         tempSideboard.push(card);
                         renderSideboardPanel();
@@ -954,7 +927,6 @@
                     cardDiv.dataset.cardname = card;
                     cardDiv.textContent = card;
                     cardDiv.addEventListener('click', () => {
-                        // 从备牌移出一张到主牌
                         tempSideboard.splice(idx, 1);
                         tempMainboard.push(card);
                         renderSideboardPanel();
@@ -966,9 +938,7 @@
                 document.getElementById('panelSideCount').textContent = tempSideboard.length;
             }
 
-            // 显示换备面板
             function showSideboard() {
-                // 基于当前全局主牌和备牌初始化临时副本
                 tempMainboard = [...mainboardList];
                 tempSideboard = [...sideboardList];
                 renderSideboardPanel();
@@ -979,12 +949,11 @@
                 document.getElementById('sideboardPanel').style.display = 'none';
             }
 
-            // 确认换备: 更新全局主/备，重置游戏
             function confirmSideboard() {
                 mainboardList = [...tempMainboard];
                 sideboardList = [...tempSideboard];
                 hideSideboard();
-                resetGameWithDeck(mainboardList);  // 使用新主牌重置游戏
+                resetGameWithDeck(mainboardList);
             }
 
             // ---------- 事件绑定 ----------
@@ -1007,7 +976,7 @@
                 document.querySelectorAll('.search-card').forEach(c => c.classList.remove('selected'));
             });
 
-            // 加载卡组 (使用新解析)
+            // 加载卡组
             document.getElementById('loadDeckBtn').addEventListener('click', () => {
                 const deckText = document.getElementById('deckInput').value;
                 const { mainboard, sideboard } = parseDeckFull(deckText);
@@ -1017,7 +986,7 @@
                 resetGameWithDeck(mainboardList);
             });
 
-            // 恢复默认卡组 (无备牌)
+            // 恢复默认卡组 (现在为60 Island)
             document.getElementById('defaultDeckBtn').addEventListener('click', () => {
                 const defaultText = DEFAULT_CARD_COUNTS.map(([count, name]) => `${count} ${name}`).join('\n');
                 document.getElementById('deckInput').value = defaultText;
@@ -1027,7 +996,7 @@
                 resetGameWithDeck(mainboardList);
             });
 
-            // 保存/加载已保存 (不变，只操作文本)
+            // 保存/加载已保存
             document.getElementById('saveDeckBtn').addEventListener('click', () => {
                 const deckText = document.getElementById('deckInput').value;
                 if (!deckText.trim()) { alert('卡组文本不能为空'); return; }
@@ -1074,12 +1043,12 @@
                 document.getElementById('deckDialog').style.display = 'none';
             });
 
-            // 换备按钮事件
+            // 换备按钮
             document.getElementById('sideboardBtn').addEventListener('click', showSideboard);
             document.getElementById('confirmSideboardBtn').addEventListener('click', confirmSideboard);
             document.getElementById('cancelSideboardBtn').addEventListener('click', hideSideboard);
 
-            // 初始化：从默认文本解析并启动
+            // 初始化：从默认文本解析并启动 (60 Island)
             (function init() {
                 const defaultText = DEFAULT_CARD_COUNTS.map(([count, name]) => `${count} ${name}`).join('\n');
                 document.getElementById('deckInput').value = defaultText;
