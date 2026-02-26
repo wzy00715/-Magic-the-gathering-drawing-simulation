@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>万智牌·完全体模拟器 (主牌/备牌｜换备功能)</title>
+    <style>
+        /* ========== 样式完全保留，追加换备面板样式 ========== */
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #2a2a2a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 16px;
+        }
+        .simulator {
+            max-width: 1300px;
+            width: 100%;
+            background: #1e1e2f;
+            border-radius: 32px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            color: #f0e6d0;
+            border: 1px solid #4a3f2e;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stats {
+            background: #2c2c3a;
+            padding: 12px 20px;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            border: 1px solid #6b5a44;
+            box-shadow: inset 0 2px 5px #0a0a0a;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .stats-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stats-item span {
+            color: #ffd966;
+            font-weight: 700;
+            min-width: 2.5rem;
+            text-align: right;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        button {
+            background: #4b3a2b;
+            border: none;
+            color: #ffebc6;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #7f6b4f;
+            box-shadow: 0 4px 0 #2a1f15;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        button:hover:not(:disabled) {
+            background: #5f4a36;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #2a1f15;
+        }
+        button:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #2a1f15;
+        }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .last-draw {
+            background: #2e2b22;
+            padding: 16px 20px;
+            border-radius: 20px;
+            margin: 24px 0;
+            border-left: 8px solid #b89b6e;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .last-draw .label {
+            color: #b89b6e;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+        .last-draw .card-name {
+            background: #0e0d12;
+            padding: 8px 24px;
+            border-radius: 60px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #ffe2a4;
+            font-size: 1.6rem;
+            word-break: break-word;
+        }
+        .search-area {
+            background: #2e2b22;
+            border-radius: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #5b4f3b;
+        }
+        .search-header {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .search-input {
+            flex: 1 1 250px;
+            background: #1a1a24;
+            border: 1px solid #7f6b4f;
+            border-radius: 60px;
+            padding: 12px 20px;
+            color: #ffebc6;
+            font-size: 1rem;
+            outline: none;
+        }
+        .search-input::placeholder {
+            color: #6b6253;
+        }
+        .search-results {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            min-height: 50px;
+            background: #25232b;
+            border-radius: 30px;
+            padding: 16px;
+        }
+        .search-card {
+            background: #352d22;
+            border: 2px solid #c1a066;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 1rem;
+            color: #ffdead;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-card:hover {
+            background: #4f422f;
+            transform: scale(1.02);
+        }
+        .search-card.selected {
+            background: #5b4a30;
+            border-color: #ffd966;
+            box-shadow: 0 0 0 2px #ffb347;
+        }
+        .search-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .action-tip {
+            color: #b89b6e;
+            margin-right: 10px;
+        }
+        .zone-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: space-between;
+        }
+        .zone {
+            flex: 1 1 200px;
+            background: #25232b;
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid #5b4f3b;
+            min-width: 180px;
+        }
+        .zone-title {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #4a3f2e;
+            padding-bottom: 4px;
+        }
+        .zone-title span {
+            background: #3d3529;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .zone-cards {
+            min-height: 100px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: flex-start;
+        }
+        .card {
+            background: #352d22;
+            border: 2px solid #c1a066;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 5px #0f0e0a;
+            color: #ffdead;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .card:hover {
+            background: #4f422f;
+            transform: scale(1.02);
+        }
+        .card.selected {
+            background: #5b4a30;
+            border-color: #ffd966;
+            box-shadow: 0 0 0 2px #ffb347;
+        }
+        .card::before {
+            content: "🃏";
+            margin-right: 4px;
+            opacity: 0.7;
+            font-size: 0.8rem;
+        }
+        .empty-message {
+            color: #7a6e5a;
+            font-style: italic;
+            width: 100%;
+            text-align: center;
+            padding: 20px 0;
+        }
+        .action-bar {
+            margin: 20px 0 10px;
+            padding: 12px 20px;
+            background: #2e2b22;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .selected-info {
+            color: #b89b6e;
+            font-weight: 400;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            background: #3a5a4a;
+            border-color: #6b9b7a;
+            box-shadow: 0 4px 0 #1d3a2a;
+        }
+        .action-btn:hover {
+            background: #4e7762;
+        }
+        .deck-manager {
+            background: #2e2b22;
+            border-radius: 30px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .deck-textarea {
+            width: 100%;
+            background: #1a1a24;
+            border: 1px solid #7f6b4f;
+            border-radius: 20px;
+            padding: 16px;
+            color: #ffebc6;
+            font-size: 1rem;
+            font-family: monospace;
+            min-height: 150px;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+        .deck-textarea::placeholder {
+            color: #6b6253;
+        }
+        /* 换备面板 */
+        .sideboard-panel {
+            background: #2e2b22;
+            border-radius: 30px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid #b89b6e;
+        }
+        .sideboard-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .sideboard-col {
+            flex: 1;
+            background: #25232b;
+            border-radius: 24px;
+            padding: 16px;
+            border: 1px solid #5b4f3b;
+        }
+        .sideboard-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        /* 卡图悬浮 */
+        #card-tooltip {
+            position: fixed;
+            display: none;
+            border: 3px solid #d4af37;
+            background: #1e1a14;
+            padding: 6px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px black;
+            z-index: 20000;
+            pointer-events: none;
+            max-width: 240px;
+            max-height: 340px;
+        }
+        #card-tooltip img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 1px solid #7f6b4f;
+            background: #2f2a22;
+        }
+        [data-cardname] {
+            cursor: help;
+        }
+        /* 对话框 */
+        .deck-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2c2c3a;
+            border: 2px solid #b89b6e;
+            border-radius: 30px;
+            padding: 24px;
+            z-index: 1000;
+            box-shadow: 0 10px 30px black;
+            min-width: 300px;
+            display: none;
+        }
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
+            display: none;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #6b6253;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator">
+        <!-- 状态栏 (不变) -->
+        <div class="header">
+            <div class="stats">
+                <div class="stats-item">📦 牌库 <span id="deckCount">53</span></div>
+                <div class="stats-item">🖐️ 手牌 <span id="handCount">7</span></div>
+                <div class="stats-item">⚡ 调度 <span id="mulliganCount">0</span></div>
+            </div>
+            <div class="button-group">
+                <button id="resetBtn">🔄 重新洗牌</button>
+            </div>
+        </div>
+
+        <!-- 最后一次抓牌显示 -->
+        <div class="last-draw">
+            <span class="label">最后一次抓牌</span>
+            <span class="card-name" id="lastDrawCard" data-cardname="">——</span>
+        </div>
+
+        <!-- 搜索区域 (不变) -->
+        <div class="search-area">
+            <div class="search-header">
+                <input type="text" id="searchInput" class="search-input" placeholder="输入卡名搜索牌库 (不区分大小写, 模糊)">
+                <button id="searchBtn">🔍 搜索</button>
+            </div>
+            <div class="search-results" id="searchResults"></div>
+            <div class="search-actions" id="searchActions" style="display: none;">
+                <span class="action-tip">对 <span id="selectedSearchCard">卡名</span> 的操作：</span>
+                <button class="action-btn" data-target="battlefield">⚔️ 放入战场</button>
+                <button class="action-btn" data-target="graveyard">💀 放入墓地</button>
+                <button class="action-btn" data-target="exile">🌑 放入放逐区</button>
+                <button class="action-btn" data-target="hand">🖐️ 加入手牌</button>
+                <button class="action-btn" data-target="decktop">📌 放置到牌库顶</button>
+                <button id="cancelSearchAction">❌ 取消</button>
+            </div>
+        </div>
+
+        <!-- 动态按钮区域 (不变) -->
+        <div id="initialButtons" class="button-group" style="margin-bottom: 16px;">
+            <button id="acceptInitialBtn">✅ 接受手牌 (开始游戏)</button>
+            <button id="mulliganBtn">🔄 调度</button>
+        </div>
+        <div id="mulliganButtons" class="button-group" style="display: none; margin-bottom: 16px;">
+            <button id="acceptXBtn">📥 接受手牌 (放回 <span id="xCount">0</span> 张)</button>
+            <button id="remulliganBtn">🔄 重新调度</button>
+        </div>
+        <div id="selectButtons" class="button-group" style="display: none; margin-bottom: 16px;">
+            <div class="selection-info">
+                <span>📌 已选 <span id="selectedCount">0</span>/<span id="targetX">0</span></span>
+                <button id="confirmReturnBtn" disabled>✅ 确认放回</button>
+                <button id="cancelSelectBtn">❌ 取消</button>
+            </div>
+        </div>
+        <div id="playButtons" class="button-group" style="display: none; margin-bottom: 16px;">
+            <button id="drawBtn">⚡ 抓牌</button>
+        </div>
+
+        <!-- 操作栏 (显示当前选中牌及移动选项) -->
+        <div class="action-bar" id="actionBar" style="display: none;">
+            <div class="selected-info" id="selectedInfo">未选中任何牌</div>
+            <div class="action-buttons" id="actionButtons"></div>
+        </div>
+
+        <!-- 主要区域：手牌、战场、墓地、放逐区 -->
+        <div class="zones-container">
+            <div class="zone">
+                <div class="zone-title">🃏 手牌 <span id="handCount2">0</span></div>
+                <div class="zone-cards" id="handZone"></div>
+            </div>
+            <div class="zone-row">
+                <div class="zone">
+                    <div class="zone-title">⚔️ 战场 <span id="battlefieldCount">0</span></div>
+                    <div class="zone-cards" id="battlefieldZone"></div>
+                </div>
+                <div class="zone">
+                    <div class="zone-title">💀 墓地 <span id="graveyardCount">0</span></div>
+                    <div class="zone-cards" id="graveyardZone"></div>
+                </div>
+                <div class="zone">
+                    <div class="zone-title">🌑 放逐区 <span id="exileCount">0</span></div>
+                    <div class="zone-cards" id="exileZone"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡组管理区域（增加换备按钮） -->
+        <div class="deck-manager">
+            <textarea id="deckInput" class="deck-textarea" placeholder="输入自定义卡组，每行格式：数量 卡名。空行前为主牌，空行后为备牌。&#10;例如：&#10;4 Banishing Knack&#10;4 Dizzy Spell&#10;&#10;2 Island&#10;1 Mountain">4 Banishing Knack
+4 Dizzy Spell
+10 Island
+4 Lórien Revealed
+4 Molten Tributary
+4 Muddle the Mixture
+4 Reckless Fireweaver
+4 Retraction Helix
+4 Secret Door
+4 Sewer-veillance Cam
+4 Silver Myr
+2 Silverbluff Bridge
+4 Vedalken Engineer
+4 Welder Automaton</textarea>
+            <div class="button-group">
+                <button id="loadDeckBtn">📥 加载此卡组</button>
+                <button id="saveDeckBtn">💾 保存当前卡组</button>
+                <button id="defaultDeckBtn">🔄 恢复默认卡组</button>
+                <button id="loadSavedBtn">📂 加载已保存的卡组</button>
+                <button id="sideboardBtn">🔄 换备</button>  <!-- 新增换备按钮 -->
+            </div>
+        </div>
+
+        <!-- 换备面板 (初始隐藏) -->
+        <div id="sideboardPanel" class="sideboard-panel" style="display: none;">
+            <div class="sideboard-row">
+                <div class="sideboard-col">
+                    <div class="zone-title">主牌 <span id="panelMainCount">0</span></div>
+                    <div class="zone-cards" id="panelMainCards"></div>
+                </div>
+                <div class="sideboard-col">
+                    <div class="zone-title">备牌 <span id="panelSideCount">0</span></div>
+                    <div class="zone-cards" id="panelSideCards"></div>
+                </div>
+            </div>
+            <div class="sideboard-actions">
+                <button id="confirmSideboardBtn" class="action-btn">✅ 确认换备</button>
+                <button id="cancelSideboardBtn">❌ 取消</button>
+            </div>
+        </div>
+
+        <footer>点击任何牌可移动 · 搜索牌库后点击结果可操作 · 鼠标悬浮显示卡图 · 空行分隔主/备</footer>
+    </div>
+
+    <!-- 卡组选择对话框 -->
+    <div class="overlay" id="overlay"></div>
+    <div class="deck-dialog" id="deckDialog">
+        <h3>选择要加载的卡组</h3>
+        <select id="savedDeckSelect" size="5"></select>
+        <div class="button-group">
+            <button id="loadSelectedDeck">加载</button>
+            <button id="closeDeckDialog">取消</button>
+        </div>
+    </div>
+
+    <!-- 悬浮卡图容器 -->
+    <div id="card-tooltip"><img src="" alt="卡图"></div>
+
+    <script>
+        (function() {
+            // ---------- 默认卡组数据 (用于生成默认文本) ----------
+            const DEFAULT_CARD_COUNTS = [
+                [4, "Banishing Knack"],
+                [4, "Dizzy Spell"],
+                [10, "Island"],
+                [4, "Lórien Revealed"],
+                [4, "Molten Tributary"],
+                [4, "Muddle the Mixture"],
+                [4, "Reckless Fireweaver"],
+                [4, "Retraction Helix"],
+                [4, "Secret Door"],
+                [4, "Sewer-veillance Cam"],
+                [4, "Silver Myr"],
+                [2, "Silverbluff Bridge"],
+                [4, "Vedalken Engineer"],
+                [4, "Welder Automaton"]
+            ];
+
+            // ---------- 全局状态 ----------
+            let deck = [];
+            let hand = [];
+            let battlefield = [];
+            let graveyard = [];
+            let exile = [];
+
+            // 主牌列表 (展开的卡名数组) 和 备牌列表
+            let mainboardList = [];
+            let sideboardList = [];
+
+            let mulliganCount = 0;
+            let gamePhase = 'initial';     // 'initial', 'mulligan', 'selecting', 'playing'
+            let selectedIndices = [];
+            let targetX = 0;
+            let selectedCard = null;
+
+            // 搜索相关
+            let selectedSearchCardName = '';
+
+            // ========== 卡图缓存 ==========
+            const cardImageUrlMap = new Map();
+            const pendingRequests = new Map();
+            const PLACEHOLDER_IMG = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'300\' viewBox=\'0 0 200 300\'%3E%3Crect width=\'200\' height=\'300\' fill=\'%23333333\'/%3E%3Ctext x=\'30\' y=\'160\' fill=\'%23aaaaaa\' font-size=\'18\' font-family=\'monospace\'%3E暂无图片%3C/text%3E%3C/svg%3E';
+
+            async function fetchCardImageUrl(cardName) {
+                if (pendingRequests.has(cardName)) return pendingRequests.get(cardName);
+                const promise = (async () => {
+                    const headers = { 'User-Agent': 'MagicSimulator/1.0', 'Accept': 'application/json' };
+                    const url = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
+                    try {
+                        const response = await fetch(url, { headers });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const data = await response.json();
+                        let imageUrl = null;
+                        if (data.image_uris && data.image_uris.png) {
+                            imageUrl = data.image_uris.png;
+                        } else if (data.card_faces && data.card_faces[0]?.image_uris?.png) {
+                            imageUrl = data.card_faces[0].image_uris.png;
+                        }
+                        if (imageUrl) {
+                            new Image().src = imageUrl;
+                            cardImageUrlMap.set(cardName, imageUrl);
+                        } else {
+                            cardImageUrlMap.set(cardName, null);
+                        }
+                        return imageUrl;
+                    } catch (e) {
+                        console.warn(`卡图获取失败 [${cardName}]:`, e);
+                        cardImageUrlMap.set(cardName, null);
+                        return null;
+                    } finally {
+                        pendingRequests.delete(cardName);
+                    }
+                })();
+                pendingRequests.set(cardName, promise);
+                return promise;
+            }
+
+            async function preloadCardImages(cardNames) {
+                const unique = [...new Set(cardNames)];
+                const needFetch = unique.filter(name => !cardImageUrlMap.has(name));
+                for (const name of needFetch) {
+                    fetchCardImageUrl(name);
+                    await new Promise(r => setTimeout(r, 150));
+                }
+            }
+
+            // ---------- 辅助函数：解析行数组为展开卡名 ----------
+            function parseLinesToCards(lines) {
+                const cards = [];
+                for (let line of lines) {
+                    line = line.trim();
+                    if (line === '') continue;
+                    const parts = line.split(' ');
+                    const count = parseInt(parts[0], 10);
+                    if (isNaN(count) || count <= 0) continue;
+                    const name = parts.slice(1).join(' ').trim();
+                    if (name === '') continue;
+                    for (let i = 0; i < count; i++) cards.push(name);
+                }
+                return cards;
+            }
+
+            // 新解析函数：根据第一个空行分割主牌/备牌
+            function parseDeckFull(text) {
+                const lines = text.split('\n');
+                let mainLines = [], sideLines = [];
+                let foundEmpty = false;
+                for (let line of lines) {
+                    let trimmed = line.trim();
+                    if (!foundEmpty && trimmed === '') {
+                        foundEmpty = true;
+                        continue;
+                    }
+                    if (!foundEmpty) {
+                        mainLines.push(line);
+                    } else {
+                        if (trimmed !== '') sideLines.push(line);
+                    }
+                }
+                const mainboard = parseLinesToCards(mainLines);
+                const sideboard = parseLinesToCards(sideLines);
+                return { mainboard, sideboard };
+            }
+
+            // 洗牌
+            function shuffleArray(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            // 重置游戏 (基于当前的mainboardList)
+            function resetGameWithDeck(customMainboard = null) {
+                if (customMainboard !== null) {
+                    mainboardList = [...customMainboard];
+                }
+                // 从主牌构建牌库并洗牌
+                let fullDeck = shuffleArray([...mainboardList]);
+                hand = fullDeck.slice(0, 7);
+                deck = fullDeck.slice(7);
+                battlefield = [];
+                graveyard = [];
+                exile = [];
+                mulliganCount = 0;
+                gamePhase = 'initial';
+                selectedIndices = [];
+                selectedCard = null;
+                selectedSearchCardName = '';
+                document.getElementById('searchActions').style.display = 'none';
+                
+                // 预加载主牌+备牌卡图
+                const allCards = [...mainboardList, ...sideboardList];
+                preloadCardImages([...new Set(allCards)]);
+                
+                updateUI();
+            }
+
+            // 更新UI (原有逻辑基本不变，只增加备牌相关不影响)
+            function updateUI(lastDrawn = null) {
+                document.getElementById('deckCount').textContent = deck.length;
+                document.getElementById('handCount').textContent = hand.length;
+                document.getElementById('mulliganCount').textContent = mulliganCount;
+
+                if (lastDrawn) {
+                    const lastSpan = document.getElementById('lastDrawCard');
+                    lastSpan.textContent = lastDrawn;
+                    lastSpan.dataset.cardname = lastDrawn;
+                } else if (gamePhase === 'initial' || gamePhase === 'mulligan' || gamePhase === 'selecting') {
+                    const lastSpan = document.getElementById('lastDrawCard');
+                    lastSpan.textContent = '——';
+                    delete lastSpan.dataset.cardname;
+                }
+
+                // 显示/隐藏按钮组
+                document.getElementById('initialButtons').style.display = gamePhase === 'initial' ? 'flex' : 'none';
+                document.getElementById('mulliganButtons').style.display = gamePhase === 'mulligan' ? 'flex' : 'none';
+                document.getElementById('selectButtons').style.display = gamePhase === 'selecting' ? 'flex' : 'none';
+                document.getElementById('playButtons').style.display = gamePhase === 'playing' ? 'flex' : 'none';
+
+                if (gamePhase === 'mulligan') {
+                    document.getElementById('xCount').textContent = mulliganCount;
+                    document.getElementById('remulliganBtn').disabled = (mulliganCount >= 7);
+                }
+                if (gamePhase === 'selecting') {
+                    document.getElementById('targetX').textContent = targetX;
+                    document.getElementById('selectedCount').textContent = selectedIndices.length;
+                    document.getElementById('confirmReturnBtn').disabled = (selectedIndices.length !== targetX);
+                }
+                if (gamePhase === 'playing') {
+                    document.getElementById('drawBtn').disabled = (deck.length === 0);
+                }
+
+                renderZones();
+                updateActionBar();
+            }
+
+            // 渲染主要区域
+            function renderZones() {
+                const renderZone = (zoneElement, cards, zoneName) => {
+                    zoneElement.innerHTML = '';
+                    if (cards.length === 0) {
+                        zoneElement.innerHTML = '<div class="empty-message">空</div>';
+                        return;
+                    }
+                    cards.forEach((cardName, idx) => {
+                        const cardDiv = document.createElement('div');
+                        cardDiv.className = 'card';
+                        cardDiv.dataset.cardname = cardName;
+                        
+                        if (zoneName === 'hand' && gamePhase === 'selecting') {
+                            if (selectedIndices.includes(idx)) cardDiv.classList.add('selected');
+                        } else {
+                            if (selectedCard && selectedCard.zone === zoneName && selectedCard.index === idx) {
+                                cardDiv.classList.add('selected');
+                            }
+                        }
+                        cardDiv.textContent = cardName;
+
+                        if (zoneName === 'hand' && gamePhase === 'selecting') {
+                            cardDiv.addEventListener('click', (e) => { e.stopPropagation(); handleSelectingCardClick(idx); });
+                        } else {
+                            cardDiv.addEventListener('click', (e) => { e.stopPropagation(); selectCard(zoneName, idx); });
+                        }
+                        zoneElement.appendChild(cardDiv);
+                    });
+                };
+
+                renderZone(document.getElementById('handZone'), hand, 'hand');
+                renderZone(document.getElementById('battlefieldZone'), battlefield, 'battlefield');
+                renderZone(document.getElementById('graveyardZone'), graveyard, 'graveyard');
+                renderZone(document.getElementById('exileZone'), exile, 'exile');
+
+                document.getElementById('handCount2').textContent = hand.length;
+                document.getElementById('battlefieldCount').textContent = battlefield.length;
+                document.getElementById('graveyardCount').textContent = graveyard.length;
+                document.getElementById('exileCount').textContent = exile.length;
+            }
+
+            function updateActionBar() {
+                const actionBar = document.getElementById('actionBar');
+                if (gamePhase !== 'playing' || !selectedCard) {
+                    actionBar.style.display = 'none';
+                    return;
+                }
+                actionBar.style.display = 'flex';
+                const zoneNames = { hand: '手牌', battlefield: '战场', graveyard: '墓地', exile: '放逐区' };
+                const currentZone = selectedCard.zone;
+                const cardName = (currentZone === 'hand' ? hand : 
+                                  currentZone === 'battlefield' ? battlefield :
+                                  currentZone === 'graveyard' ? graveyard : exile)[selectedCard.index];
+                document.getElementById('selectedInfo').textContent = `当前选中：${zoneNames[currentZone]} - ${cardName}`;
+
+                const targets = [];
+                if (currentZone === 'hand') { targets.push('battlefield', 'graveyard', 'exile'); } 
+                else { const allZones = ['hand', 'battlefield', 'graveyard', 'exile']; targets.push(...allZones.filter(z => z !== currentZone)); }
+
+                const actionButtonsDiv = document.getElementById('actionButtons');
+                actionButtonsDiv.innerHTML = '';
+                targets.forEach(target => {
+                    const btn = document.createElement('button');
+                    btn.className = 'action-btn';
+                    btn.textContent = `放入${zoneNames[target]}`;
+                    btn.addEventListener('click', () => moveCard(selectedCard.zone, selectedCard.index, target));
+                    actionButtonsDiv.appendChild(btn);
+                });
+            }
+
+            // 移动卡牌
+            function moveCard(fromZone, fromIndex, toZone) {
+                if (fromZone === toZone) return;
+                let card;
+                switch (fromZone) {
+                    case 'hand': card = hand.splice(fromIndex, 1)[0]; break;
+                    case 'battlefield': card = battlefield.splice(fromIndex, 1)[0]; break;
+                    case 'graveyard': card = graveyard.splice(fromIndex, 1)[0]; break;
+                    case 'exile': card = exile.splice(fromIndex, 1)[0]; break;
+                    default: return;
+                }
+                switch (toZone) {
+                    case 'hand': hand.push(card); break;
+                    case 'battlefield': battlefield.push(card); break;
+                    case 'graveyard': graveyard.push(card); break;
+                    case 'exile': exile.push(card); break;
+                }
+                selectedCard = null;
+                updateUI(card);
+            }
+
+            function selectCard(zone, index) {
+                if (gamePhase !== 'playing') return;
+                if (selectedCard && selectedCard.zone === zone && selectedCard.index === index) selectedCard = null;
+                else selectedCard = { zone, index };
+                updateUI();
+            }
+
+            function handleSelectingCardClick(index) {
+                if (gamePhase !== 'selecting') return;
+                if (selectedIndices.includes(index)) {
+                    selectedIndices = selectedIndices.filter(i => i !== index);
+                } else {
+                    if (selectedIndices.length < targetX) selectedIndices.push(index);
+                    else alert(`最多只能选择 ${targetX} 张牌放回`);
+                }
+                document.getElementById('selectedCount').textContent = selectedIndices.length;
+                document.getElementById('confirmReturnBtn').disabled = (selectedIndices.length !== targetX);
+                renderZones();
+            }
+
+            // 调度相关
+            function performMulligan() {
+                if (mulliganCount >= 7) return;
+                let combined = hand.concat(deck, battlefield, graveyard, exile);
+                shuffleArray(combined);
+                hand = combined.slice(0, 7);
+                deck = combined.slice(7);
+                battlefield = []; graveyard = []; exile = [];
+                mulliganCount++;
+                gamePhase = 'mulligan';
+                selectedIndices = []; selectedCard = null;
+                updateUI();
+            }
+
+            function acceptInitial() { gamePhase = 'playing'; selectedCard = null; updateUI(); }
+            function startAcceptWithReturn() { targetX = mulliganCount; gamePhase = 'selecting'; selectedIndices = []; selectedCard = null; updateUI(); }
+            function confirmReturn() {
+                if (selectedIndices.length !== targetX) return;
+                const selectedCards = selectedIndices.map(i => hand[i]);
+                hand = hand.filter((_, i) => !selectedIndices.includes(i));
+                deck.push(...selectedCards);
+                mulliganCount = 0; gamePhase = 'playing'; selectedIndices = []; selectedCard = null; updateUI();
+            }
+            function cancelSelect() { gamePhase = 'mulligan'; selectedIndices = []; selectedCard = null; updateUI(); }
+            function drawOneCard() {
+                if (deck.length === 0) { alert('牌库已空！'); return; }
+                const drawn = deck.shift();
+                hand.push(drawn);
+                updateUI(drawn);
+            }
+
+            // 搜索牌库
+            function searchDeck() {
+                const query = document.getElementById('searchInput').value.trim().toLowerCase();
+                const resultsDiv = document.getElementById('searchResults');
+                if (!query) { resultsDiv.innerHTML = '<div class="empty-message">输入卡名后搜索</div>'; return; }
+                const matches = deck.filter(card => card.toLowerCase().includes(query));
+                const uniqueMatches = [...new Set(matches)];
+                if (uniqueMatches.length === 0) { resultsDiv.innerHTML = '<div class="empty-message">未找到匹配的牌</div>'; return; }
+                resultsDiv.innerHTML = '';
+                uniqueMatches.forEach(cardName => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'search-card';
+                    cardEl.textContent = cardName;
+                    cardEl.addEventListener('click', () => {
+                        selectedSearchCardName = cardName;
+                        document.getElementById('selectedSearchCard').textContent = cardName;
+                        document.getElementById('searchActions').style.display = 'flex';
+                        document.querySelectorAll('.search-card').forEach(c => c.classList.remove('selected'));
+                        cardEl.classList.add('selected');
+                    });
+                    resultsDiv.appendChild(cardEl);
+                });
+            }
+
+            function handleSearchAction(targetZone) {
+                if (!selectedSearchCardName) { alert('请先点击搜索结果中的一张牌'); return; }
+                if (deck.length === 0) { alert('牌库为空，无法操作'); return; }
+                shuffleArray(deck);
+                const index = deck.findIndex(card => card.toLowerCase() === selectedSearchCardName.toLowerCase());
+                if (index === -1) { alert(`牌库中已没有 [${selectedSearchCardName}]`); return; }
+                const card = deck.splice(index, 1)[0];
+                switch (targetZone) {
+                    case 'battlefield': battlefield.push(card); break;
+                    case 'graveyard': graveyard.push(card); break;
+                    case 'exile': exile.push(card); break;
+                    case 'hand': hand.push(card); break;
+                    case 'decktop': deck.unshift(card); break;
+                }
+                selectedSearchCardName = '';
+                document.getElementById('searchActions').style.display = 'none';
+                document.querySelectorAll('.search-card').forEach(c => c.classList.remove('selected'));
+                updateUI(card);
+            }
+
+            // ========== 换备功能 ==========
+            let tempMainboard = [], tempSideboard = [];  // 临时编辑
+
+            function renderSideboardPanel() {
+                const mainDiv = document.getElementById('panelMainCards');
+                const sideDiv = document.getElementById('panelSideCards');
+                mainDiv.innerHTML = ''; sideDiv.innerHTML = '';
+
+                tempMainboard.forEach((card, idx) => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card';
+                    cardDiv.dataset.cardname = card;
+                    cardDiv.textContent = card;
+                    cardDiv.addEventListener('click', () => {
+                        // 从主牌移出一张到备牌
+                        tempMainboard.splice(idx, 1);
+                        tempSideboard.push(card);
+                        renderSideboardPanel();
+                    });
+                    mainDiv.appendChild(cardDiv);
+                });
+                tempSideboard.forEach((card, idx) => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'card';
+                    cardDiv.dataset.cardname = card;
+                    cardDiv.textContent = card;
+                    cardDiv.addEventListener('click', () => {
+                        // 从备牌移出一张到主牌
+                        tempSideboard.splice(idx, 1);
+                        tempMainboard.push(card);
+                        renderSideboardPanel();
+                    });
+                    sideDiv.appendChild(cardDiv);
+                });
+
+                document.getElementById('panelMainCount').textContent = tempMainboard.length;
+                document.getElementById('panelSideCount').textContent = tempSideboard.length;
+            }
+
+            // 显示换备面板
+            function showSideboard() {
+                // 基于当前全局主牌和备牌初始化临时副本
+                tempMainboard = [...mainboardList];
+                tempSideboard = [...sideboardList];
+                renderSideboardPanel();
+                document.getElementById('sideboardPanel').style.display = 'block';
+            }
+
+            function hideSideboard() {
+                document.getElementById('sideboardPanel').style.display = 'none';
+            }
+
+            // 确认换备: 更新全局主/备，重置游戏
+            function confirmSideboard() {
+                mainboardList = [...tempMainboard];
+                sideboardList = [...tempSideboard];
+                hideSideboard();
+                resetGameWithDeck(mainboardList);  // 使用新主牌重置游戏
+            }
+
+            // ---------- 事件绑定 ----------
+            document.getElementById('acceptInitialBtn').addEventListener('click', acceptInitial);
+            document.getElementById('mulliganBtn').addEventListener('click', performMulligan);
+            document.getElementById('acceptXBtn').addEventListener('click', startAcceptWithReturn);
+            document.getElementById('remulliganBtn').addEventListener('click', performMulligan);
+            document.getElementById('confirmReturnBtn').addEventListener('click', confirmReturn);
+            document.getElementById('cancelSelectBtn').addEventListener('click', cancelSelect);
+            document.getElementById('drawBtn').addEventListener('click', drawOneCard);
+            document.getElementById('resetBtn').addEventListener('click', () => resetGameWithDeck(mainboardList));
+            document.getElementById('searchBtn').addEventListener('click', searchDeck);
+            document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') searchDeck(); });
+            document.querySelectorAll('.search-actions .action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => { const target = e.target.getAttribute('data-target'); handleSearchAction(target); });
+            });
+            document.getElementById('cancelSearchAction').addEventListener('click', () => {
+                selectedSearchCardName = '';
+                document.getElementById('searchActions').style.display = 'none';
+                document.querySelectorAll('.search-card').forEach(c => c.classList.remove('selected'));
+            });
+
+            // 加载卡组 (使用新解析)
+            document.getElementById('loadDeckBtn').addEventListener('click', () => {
+                const deckText = document.getElementById('deckInput').value;
+                const { mainboard, sideboard } = parseDeckFull(deckText);
+                if (mainboard.length === 0) { alert('主牌格式错误，请检查输入'); return; }
+                mainboardList = mainboard;
+                sideboardList = sideboard;
+                resetGameWithDeck(mainboardList);
+            });
+
+            // 恢复默认卡组 (无备牌)
+            document.getElementById('defaultDeckBtn').addEventListener('click', () => {
+                const defaultText = DEFAULT_CARD_COUNTS.map(([count, name]) => `${count} ${name}`).join('\n');
+                document.getElementById('deckInput').value = defaultText;
+                const { mainboard, sideboard } = parseDeckFull(defaultText);
+                mainboardList = mainboard;
+                sideboardList = sideboard;
+                resetGameWithDeck(mainboardList);
+            });
+
+            // 保存/加载已保存 (不变，只操作文本)
+            document.getElementById('saveDeckBtn').addEventListener('click', () => {
+                const deckText = document.getElementById('deckInput').value;
+                if (!deckText.trim()) { alert('卡组文本不能为空'); return; }
+                const name = prompt('请输入卡组名称：');
+                if (name && name.trim()) { 
+                    const decks = JSON.parse(localStorage.getItem('mtg_saved_decks') || '{}');
+                    decks[name.trim()] = deckText;
+                    localStorage.setItem('mtg_saved_decks', JSON.stringify(decks));
+                    alert(`卡组“${name}”已保存`); 
+                }
+            });
+
+            document.getElementById('loadSavedBtn').addEventListener('click', () => {
+                const decks = JSON.parse(localStorage.getItem('mtg_saved_decks') || '{}');
+                const names = Object.keys(decks);
+                if (names.length === 0) { alert('没有已保存的卡组'); return; }
+                const select = document.getElementById('savedDeckSelect');
+                select.innerHTML = '';
+                names.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name; option.textContent = name;
+                    select.appendChild(option);
+                });
+                document.getElementById('overlay').style.display = 'block';
+                document.getElementById('deckDialog').style.display = 'block';
+            });
+
+            document.getElementById('loadSelectedDeck').addEventListener('click', () => {
+                const selectedName = document.getElementById('savedDeckSelect').value;
+                if (!selectedName) { alert('请选择一个卡组'); return; }
+                const decks = JSON.parse(localStorage.getItem('mtg_saved_decks') || '{}');
+                const deckText = decks[selectedName];
+                if (deckText) document.getElementById('deckInput').value = deckText;
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('deckDialog').style.display = 'none';
+            });
+
+            document.getElementById('closeDeckDialog').addEventListener('click', () => {
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('deckDialog').style.display = 'none';
+            });
+            document.getElementById('overlay').addEventListener('click', () => {
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('deckDialog').style.display = 'none';
+            });
+
+            // 换备按钮事件
+            document.getElementById('sideboardBtn').addEventListener('click', showSideboard);
+            document.getElementById('confirmSideboardBtn').addEventListener('click', confirmSideboard);
+            document.getElementById('cancelSideboardBtn').addEventListener('click', hideSideboard);
+
+            // 初始化：从默认文本解析并启动
+            (function init() {
+                const defaultText = DEFAULT_CARD_COUNTS.map(([count, name]) => `${count} ${name}`).join('\n');
+                document.getElementById('deckInput').value = defaultText;
+                const { mainboard, sideboard } = parseDeckFull(defaultText);
+                mainboardList = mainboard;
+                sideboardList = sideboard;
+                resetGameWithDeck(mainboardList);
+            })();
+
+            // ---------- 悬浮卡图 (不变) ----------
+            const tooltip = document.getElementById('card-tooltip');
+            const tooltipImg = tooltip.querySelector('img');
+            let currentTooltipCard = '';
+
+            function updateTooltipPosition(e) {
+                tooltip.style.left = (e.clientX + 20) + 'px';
+                tooltip.style.top = (e.clientY + 20) + 'px';
+            }
+
+            function showTooltip(cardName, event) {
+                currentTooltipCard = cardName;
+                const cachedUrl = cardImageUrlMap.get(cardName);
+                if (cachedUrl) tooltipImg.src = cachedUrl;
+                else if (cachedUrl === null) tooltipImg.src = PLACEHOLDER_IMG;
+                else {
+                    tooltipImg.src = PLACEHOLDER_IMG;
+                    fetchCardImageUrl(cardName).then(finalUrl => {
+                        if (currentTooltipCard === cardName && tooltip.style.display === 'block') {
+                            tooltipImg.src = finalUrl || PLACEHOLDER_IMG;
+                        }
+                    });
+                }
+                tooltip.style.display = 'block';
+                updateTooltipPosition(event);
+                document.addEventListener('mousemove', onTooltipMouseMove);
+            }
+
+            function hideTooltip() {
+                tooltip.style.display = 'none';
+                currentTooltipCard = '';
+                document.removeEventListener('mousemove', onTooltipMouseMove);
+            }
+
+            function onTooltipMouseMove(e) {
+                if (tooltip.style.display === 'block') updateTooltipPosition(e);
+            }
+
+            document.addEventListener('mouseover', (e) => {
+                const trigger = e.target.closest('[data-cardname]');
+                if (trigger) {
+                    const cardName = trigger.dataset.cardname;
+                    if (cardName && cardName !== '——') showTooltip(cardName, e);
+                }
+            });
+
+            document.addEventListener('mouseout', (e) => {
+                if (!e.target.closest('[data-cardname]')) hideTooltip();
+            });
+        })();
+    </script>
+</body>
+</html>
