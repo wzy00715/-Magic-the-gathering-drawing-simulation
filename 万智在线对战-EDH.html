@@ -1,0 +1,2374 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>万智牌·指挥官4人对战</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #0a0a12;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+        }
+        .simulator {
+            max-width: 1800px;
+            width: 100%;
+            margin: 0 auto;
+            background: #1e1e2f;
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            color: #f0e6d0;
+            border: 1px solid #4a3f2e;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 95vh;
+        }
+        .p2p-bar {
+            background: #2a2833;
+            border-radius: 60px;
+            padding: 10px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border: 1px solid #c1a066;
+            flex-shrink: 0;
+        }
+        .p2p-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .p2p-status {
+            font-size: 0.85rem;
+            background: #1f1d26;
+            padding: 5px 15px;
+            border-radius: 30px;
+            font-family: monospace;
+        }
+        .peer-input {
+            background: #1a1a24;
+            border: 1px solid #7f6b4f;
+            border-radius: 40px;
+            padding: 6px 15px;
+            color: #ffebc6;
+            width: 180px;
+        }
+        button, .deck-select {
+            background: #4b3a2b;
+            border: none;
+            color: #ffebc6;
+            font-weight: 600;
+            padding: 6px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #7f6b4f;
+            font-size: 0.85rem;
+        }
+        .deck-select {
+            background: #1a1a24;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        .danger-btn {
+            background: #7a3a2a;
+            border-color: #b55a3a;
+        }
+        .copy-btn, .refresh-btn {
+            background: #2a6b4e;
+            border-color: #4cae7a;
+        }
+        .token-btn, .indicator-btn, .dice-btn, .reset-tap-btn {
+            background: #6a4e2a;
+            border-color: #dba558;
+        }
+        .players-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 16px;
+            flex: 1;
+        }
+        .player-area, .opponent-area {
+            background: #25232b;
+            border-radius: 28px;
+            padding: 16px;
+            border: 1px solid #6b5a44;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow: auto;
+            min-width: 0;
+        }
+        .opponent-area {
+            background: #1e1c28;
+            border-color: #7a6a4a;
+        }
+        .area-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            border-left: 5px solid #c9ae6e;
+            padding-left: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .life-counters {
+            display: flex;
+            gap: 12px;
+            background: #1f1d26;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+        .life-counter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+        .life-counter span {
+            font-weight: bold;
+            font-size: 1rem;
+            min-width: 36px;
+            text-align: center;
+            color: #ffaa66;
+        }
+        .life-counter button {
+            background: #3a5a4a;
+            padding: 1px 8px;
+            font-size: 0.9rem;
+        }
+        .stats-line {
+            display: flex;
+            gap: 16px;
+            background: #1f1d26;
+            padding: 4px 12px;
+            border-radius: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+        }
+        .stats-item span {
+            color: #ffd966;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+        .battlefield-core {
+            display: grid;
+            grid-template-columns: 1fr 140px;
+            gap: 12px;
+            min-height: 200px;
+        }
+        .battlefield-cards-area {
+            background: #2c2a33;
+            border-radius: 20px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .battlefield-top {
+            min-height: 150px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            position: relative;
+            overflow: auto;
+        }
+        .battlefield-top-content {
+            position: relative;
+            min-height: 140px;
+        }
+        .battlefield-bottom {
+            min-height: 120px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            padding: 6px;
+        }
+        .bottom-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        .side-zones {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .zone-card {
+            background: #2a2833;
+            border-radius: 16px;
+            padding: 8px;
+        }
+        .zone-title {
+            font-weight: bold;
+            border-bottom: 1px solid #b89b6e;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .cards-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 60px;
+            align-items: center;
+        }
+        .card, .indicator {
+            width: 70px;
+            height: 95px;
+            background: #2a241c;
+            border-radius: 8px;
+            border: 2px solid #c1a066;
+            cursor: grab;
+            transition: box-shadow 0.1s;
+            flex-shrink: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #ffebc6;
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+        .indicator {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 6px;
+            font-size: 0.55rem;
+            background: #3a2a1a;
+            border-color: #e6c384;
+            z-index: 200 !important;
+        }
+        .indicator-value {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #ffaa66;
+        }
+        .indicator-text {
+            font-size: 0.45rem;
+            word-break: break-word;
+            padding: 1px;
+        }
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+            pointer-events: none;
+        }
+        .card.tapped {
+            transform: rotate(90deg);
+            transform-origin: center center;
+        }
+        .card:hover, .indicator:hover {
+            box-shadow: 0 0 0 2px #ffd966;
+            z-index: 10;
+        }
+        .free-card, .free-indicator {
+            position: absolute;
+            cursor: grab;
+        }
+        .free-indicator {
+            z-index: 200 !important;
+        }
+        .opponent-card {
+            width: 60px;
+            height: 82px;
+            background: #2a241c;
+            border-radius: 6px;
+            border: 1px solid #a8864b;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .opponent-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .opponent-card.tapped img {
+            transform: rotate(90deg);
+        }
+        .opponent-card:hover {
+            box-shadow: 0 0 0 2px #ffd966;
+        }
+        .hand-container {
+            background: #23212b;
+            border-radius: 20px;
+            padding: 6px;
+            margin-top: 4px;
+        }
+        .hand-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 85px;
+        }
+        .empty-msg {
+            color: #7a6e5a;
+            padding: 8px;
+            text-align: center;
+            width: 100%;
+            font-size: 0.7rem;
+        }
+        .float-menu {
+            position: fixed;
+            background: #3a2e22;
+            border: 2px solid #e6c384;
+            border-radius: 30px;
+            padding: 4px 8px;
+            display: flex;
+            gap: 6px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px black;
+        }
+        .float-menu button {
+            background: #5f4a36;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+        }
+        .action-bar {
+            background: #2e2b22;
+            border-radius: 40px;
+            padding: 4px 10px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 6px;
+            font-size: 0.8rem;
+        }
+        footer {
+            font-size: 0.65rem;
+            text-align: center;
+            color: #6b6253;
+        }
+        #card-tooltip {
+            position: fixed;
+            display: none;
+            border: 3px solid #ffd966;
+            background: #1e1a14;
+            border-radius: 12px;
+            z-index: 21000;
+            pointer-events: none;
+            width: 180px;
+            box-shadow: 0 8px 20px black;
+        }
+        #card-tooltip img {
+            width: 100%;
+            border-radius: 8px;
+            display: block;
+        }
+        .deck-manager {
+            background: #2e2b22;
+            border-radius: 30px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+        .deck-textarea {
+            width: 100%;
+            background: #1a1a24;
+            border: 1px solid #7f6b4f;
+            border-radius: 20px;
+            padding: 10px;
+            color: #ffebc6;
+            font-family: monospace;
+            min-height: 80px;
+            resize: vertical;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .search-modal, .zone-modal {
+            background: #2c2c3a;
+            border: 2px solid #dbb879;
+            border-radius: 40px;
+            width: 90%;
+            max-width: 800px;
+            padding: 20px;
+        }
+        .search-results-modal {
+            background: #25232b;
+            border-radius: 28px;
+            padding: 12px;
+            max-height: 260px;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .search-card {
+            background: #352d22;
+            border: 2px solid #c1a066;
+            padding: 4px 10px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        .topcard-item {
+            background: #2a241c;
+            border-radius: 16px;
+            padding: 10px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            border: 1px solid #c1a066;
+        }
+        .topcard-name {
+            font-weight: bold;
+            min-width: 100px;
+        }
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .revealed-hand-card {
+            background: #3a2e22;
+            border-radius: 6px;
+            width: 55px;
+            height: 75px;
+            border: 1px solid gold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            text-align: center;
+            overflow: hidden;
+        }
+        .revealed-hand-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .token-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: #ffaa33cc;
+            color: black;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 1px 2px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        .dice-result {
+            background: #1f1d26;
+            border-radius: 40px;
+            padding: 2px 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: monospace;
+            color: #ffaa66;
+        }
+        .indicator-menu {
+            position: fixed;
+            background: #2c2a33;
+            border: 2px solid #e6c384;
+            border-radius: 20px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 10001;
+            box-shadow: 0 4px 12px black;
+        }
+        .indicator-menu button {
+            background: #5f4a36;
+            padding: 4px 16px;
+            white-space: nowrap;
+        }
+        .topcard-operations {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .topcard-operations .topcard-row {
+            background: #2a241c;
+            border-radius: 16px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .opponent-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            justify-content: center;
+        }
+        .opponent-buttons button {
+            background: #3a5a4a;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+        }
+        .commander-area {
+            margin-top: 8px;
+            background: #2a2833;
+            border-radius: 16px;
+            padding: 8px;
+        }
+        .zone-stack {
+            cursor: pointer;
+            background: #3a2e22;
+            border-radius: 12px;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .zone-stack .card-preview {
+            width: 40px;
+            height: 54px;
+            background: #2a241c;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .zone-stack .card-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .zone-stack span {
+            font-size: 0.8rem;
+            color: #ffd966;
+        }
+        .zone-modal .card-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .zone-card-item {
+            background: #2a241c;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="simulator">
+    <div class="p2p-bar">
+        <div class="p2p-controls">
+            <button id="createHostBtn">🎮 重新生成ID</button>
+            <input type="text" id="remotePeerIdInput" class="peer-input" placeholder="输入对方 Peer ID">
+            <button id="connectBtn">🔗 连接</button>
+            <button id="disconnectBtn" class="danger-btn">⛔ 断开连接</button>
+            <button id="copyIdBtn" class="copy-btn">📋 复制我的ID</button>
+            <button id="refreshAllBtn" class="refresh-btn">🔄 刷新所有对手</button>
+        </div>
+        <div class="p2p-status" id="connectionStatus">⚪ 未连接任何对手</div>
+    </div>
+
+    <div class="players-grid">
+        <!-- 左上：对手1 -->
+        <div class="opponent-area" id="opponent0Area">
+            <div class="area-header">
+                <span>👤 对手 1</span>
+                <div class="life-counters">
+                    <div class="life-counter">❤️ <span id="opp0LifeValue">40</span></div>
+                    <div class="life-counter">👑 <span id="opp0CommanderLifeValue">20</span></div>
+                </div>
+                <span class="conn-status" id="opp0Status">未连接</span>
+            </div>
+            <div class="stats-line">
+                <div class="stats-item">📦 <span id="opp0DeckCount">0</span></div>
+                <div class="stats-item">🖐️ <span id="opp0HandCount">0</span></div>
+                <div class="stats-item">⚡ 调度 <span id="opp0MulliganCount">0</span></div>
+            </div>
+            <div class="battlefield-core">
+                <div class="battlefield-cards-area">
+                    <div class="battlefield-top" id="opp0TopContainer"><div class="battlefield-title">上区 (<span id="opp0TopCount">0</span>)</div><div class="battlefield-top-content" id="opp0TopZone"></div></div>
+                    <div class="battlefield-bottom" id="opp0BottomContainer"><div class="battlefield-title">下区 (<span id="opp0BottomCount">0</span>)</div><div class="bottom-grid" id="opp0BottomZone"></div></div>
+                </div>
+                <div class="side-zones">
+                    <div class="zone-card"><div class="zone-title">💀 墓地 <span id="opp0GraveCount">0</span></div><div class="cards-grid" id="opp0Graveyard"></div></div>
+                    <div class="zone-card"><div class="zone-title">🌑 放逐区 <span id="opp0ExileCount">0</span></div><div class="cards-grid" id="opp0Exile"></div></div>
+                    <div class="commander-area"><div class="zone-title">👑 指挥官区</div><div class="cards-grid" id="opp0Commander"></div></div>
+                </div>
+            </div>
+            <div class="hand-container"><div class="zone-title">🃏 手牌 (<span id="opp0RevealedCount">0</span> 张可见)</div><div class="hand-grid" id="opp0HandGrid"></div></div>
+            <div class="opponent-buttons">
+                <button class="req-hand-btn" data-opp="0">👁️ 请求手牌</button>
+                <button class="req-top-btn" data-opp="0">🔍 查看牌库顶</button>
+            </div>
+        </div>
+
+        <!-- 右上：对手2 -->
+        <div class="opponent-area" id="opponent1Area">
+            <div class="area-header">
+                <span>👤 对手 2</span>
+                <div class="life-counters">
+                    <div class="life-counter">❤️ <span id="opp1LifeValue">40</span></div>
+                    <div class="life-counter">👑 <span id="opp1CommanderLifeValue">20</span></div>
+                </div>
+                <span class="conn-status" id="opp1Status">未连接</span>
+            </div>
+            <div class="stats-line">
+                <div class="stats-item">📦 <span id="opp1DeckCount">0</span></div>
+                <div class="stats-item">🖐️ <span id="opp1HandCount">0</span></div>
+                <div class="stats-item">⚡ 调度 <span id="opp1MulliganCount">0</span></div>
+            </div>
+            <div class="battlefield-core">
+                <div class="battlefield-cards-area">
+                    <div class="battlefield-top" id="opp1TopContainer"><div class="battlefield-title">上区 (<span id="opp1TopCount">0</span>)</div><div class="battlefield-top-content" id="opp1TopZone"></div></div>
+                    <div class="battlefield-bottom" id="opp1BottomContainer"><div class="battlefield-title">下区 (<span id="opp1BottomCount">0</span>)</div><div class="bottom-grid" id="opp1BottomZone"></div></div>
+                </div>
+                <div class="side-zones">
+                    <div class="zone-card"><div class="zone-title">💀 墓地 <span id="opp1GraveCount">0</span></div><div class="cards-grid" id="opp1Graveyard"></div></div>
+                    <div class="zone-card"><div class="zone-title">🌑 放逐区 <span id="opp1ExileCount">0</span></div><div class="cards-grid" id="opp1Exile"></div></div>
+                    <div class="commander-area"><div class="zone-title">👑 指挥官区</div><div class="cards-grid" id="opp1Commander"></div></div>
+                </div>
+            </div>
+            <div class="hand-container"><div class="zone-title">🃏 手牌 (<span id="opp1RevealedCount">0</span> 张可见)</div><div class="hand-grid" id="opp1HandGrid"></div></div>
+            <div class="opponent-buttons">
+                <button class="req-hand-btn" data-opp="1">👁️ 请求手牌</button>
+                <button class="req-top-btn" data-opp="1">🔍 查看牌库顶</button>
+            </div>
+        </div>
+
+        <!-- 左下：主控玩家（本机） -->
+        <div class="player-area" id="playerArea">
+            <div class="area-header">
+                <span>🧙 你 (本地)</span>
+                <div class="life-counters">
+                    <div class="life-counter">❤️ <button id="myLifeMinus">-</button><span id="myLifeValue">40</span><button id="myLifePlus">+</button></div>
+                    <div class="life-counter">👑 <button id="myCommanderLifeMinus">-</button><span id="myCommanderLifeValue">20</span><button id="myCommanderLifePlus">+</button></div>
+                </div>
+                <div class="stats-line" style="margin:0; padding:2px 8px;">
+                    <span>📦 <span id="myDeckCount">0</span></span>
+                    <span>🖐️ <span id="myHandCount">0</span></span>
+                    <span>⚡ 调度 <span id="myMulliganCount">0</span></span>
+                </div>
+                <div class="dice-result" id="myDiceResult">🎲 -</div>
+            </div>
+            <div class="battlefield-core">
+                <div class="battlefield-cards-area">
+                    <div class="battlefield-top" id="myTopContainer"><div class="battlefield-title">上区 (<span id="myTopCount">0</span>)</div><div class="battlefield-top-content" id="myTopZone"></div></div>
+                    <div class="battlefield-bottom" id="myBottomContainer"><div class="battlefield-title">下区 (<span id="myBottomCount">0</span>)</div><div class="bottom-grid" id="myBottomZone"></div></div>
+                </div>
+                <div class="side-zones">
+                    <div class="zone-card" id="myGraveZone"><div class="zone-title">💀 墓地 <span id="myGraveCount">0</span></div><div class="cards-grid" id="myGraveyard"></div></div>
+                    <div class="zone-card" id="myExileZone"><div class="zone-title">🌑 放逐区 <span id="myExileCount">0</span></div><div class="cards-grid" id="myExile"></div></div>
+                    <div class="commander-area" id="myCommanderZone"><div class="zone-title">👑 指挥官区</div><div class="cards-grid" id="myCommander"></div></div>
+                </div>
+            </div>
+            <div class="hand-container"><div class="zone-title">🃏 手牌 (可拖拽或点击后使用操作栏)</div><div class="hand-grid" id="myHandZone"></div></div>
+            <div id="playerActionBar" class="action-bar" style="display: none;"><span id="selectedCardInfo">未选中</span><div class="button-group" id="actionButtonsGroup"></div></div>
+            <div class="button-group" style="justify-content: center; margin: 6px 0; flex-wrap: wrap;">
+                <button id="myDrawBtn">⚡ 抓一张牌</button>
+                <button id="myShuffleBtn">🃏 洗牌库</button>
+                <button id="scryBtn">🔮 占卜</button>
+                <button id="surveilBtn">👁️ 刺探</button>
+                <button id="viewTopCardsBtn">📜 查看牌库顶X张</button>
+                <button id="resetGameBtn">🔄 重置对局</button>
+                <button id="resetTapBtn">🔄 重置横置牌</button>
+                <button id="openSearchModalBtn">🔍 搜索牌库</button>
+                <button id="toggleDeckManagerBtn">📂 卡组管理</button>
+                <button id="addTokenBtn" class="token-btn">🎴 添加Token</button>
+                <button id="addIndicatorBtn" class="indicator-btn">🏷️ 添加指示物</button>
+                <button id="rollDiceBtn" class="dice-btn">🎲 掷骰子</button>
+            </div>
+            <div id="initialButtons" class="button-group" style="justify-content: center; margin-bottom: 4px; display: flex;"><button id="acceptInitialBtn">✅ 接受手牌 (开始游戏)</button><button id="mulliganBtn">🔄 调度</button></div>
+            <div id="mulliganButtons" class="button-group" style="display: none; justify-content: center; margin-bottom: 4px;"><button id="acceptMulliganBtn">✅ 接受手牌</button><button id="continueMulliganBtn">🔄 继续调度</button></div>
+            <div id="selectButtons" class="button-group" style="display: none; justify-content: center; margin-bottom: 4px;"><div style="display: flex; gap: 8px;"><span>📌 已选 <span id="selectedCount">0</span>/<span id="targetX">0</span></span><button id="confirmReturnBtn" disabled>✅ 确认放回</button><button id="continueSelectMulliganBtn">🔄 继续调度</button><button id="cancelSelectBtn">❌ 取消</button></div></div>
+            <div id="playButtons" class="button-group" style="display: none; justify-content: center; margin-bottom: 4px;"></div>
+        </div>
+
+        <!-- 右下：对手3 -->
+        <div class="opponent-area" id="opponent2Area">
+            <div class="area-header">
+                <span>👤 对手 3</span>
+                <div class="life-counters">
+                    <div class="life-counter">❤️ <span id="opp2LifeValue">40</span></div>
+                    <div class="life-counter">👑 <span id="opp2CommanderLifeValue">20</span></div>
+                </div>
+                <span class="conn-status" id="opp2Status">未连接</span>
+            </div>
+            <div class="stats-line">
+                <div class="stats-item">📦 <span id="opp2DeckCount">0</span></div>
+                <div class="stats-item">🖐️ <span id="opp2HandCount">0</span></div>
+                <div class="stats-item">⚡ 调度 <span id="opp2MulliganCount">0</span></div>
+            </div>
+            <div class="battlefield-core">
+                <div class="battlefield-cards-area">
+                    <div class="battlefield-top" id="opp2TopContainer"><div class="battlefield-title">上区 (<span id="opp2TopCount">0</span>)</div><div class="battlefield-top-content" id="opp2TopZone"></div></div>
+                    <div class="battlefield-bottom" id="opp2BottomContainer"><div class="battlefield-title">下区 (<span id="opp2BottomCount">0</span>)</div><div class="bottom-grid" id="opp2BottomZone"></div></div>
+                </div>
+                <div class="side-zones">
+                    <div class="zone-card"><div class="zone-title">💀 墓地 <span id="opp2GraveCount">0</span></div><div class="cards-grid" id="opp2Graveyard"></div></div>
+                    <div class="zone-card"><div class="zone-title">🌑 放逐区 <span id="opp2ExileCount">0</span></div><div class="cards-grid" id="opp2Exile"></div></div>
+                    <div class="commander-area"><div class="zone-title">👑 指挥官区</div><div class="cards-grid" id="opp2Commander"></div></div>
+                </div>
+            </div>
+            <div class="hand-container"><div class="zone-title">🃏 手牌 (<span id="opp2RevealedCount">0</span> 张可见)</div><div class="hand-grid" id="opp2HandGrid"></div></div>
+            <div class="opponent-buttons">
+                <button class="req-hand-btn" data-opp="2">👁️ 请求手牌</button>
+                <button class="req-top-btn" data-opp="2">🔍 查看牌库顶</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deckManagerPanel" class="deck-manager" style="display: none;">
+        <textarea id="deckInput" class="deck-textarea" placeholder="每行：数量 卡名，空行分隔主牌和指挥官&#10;例：&#10;40 Island&#10;&#10;1 Atraxa, Praetors' Voice"></textarea>
+        <div class="button-group">
+            <button id="loadDeckBtn">📥 加载此卡组</button>
+            <button id="saveDeckBtn">💾 保存当前卡组</button>
+            <button id="defaultDeckBtn">🔄 恢复默认卡组</button>
+            <select id="savedDeckSelect" class="deck-select">
+                <option value="">-- 选择已保存卡组 --</option>
+            </select>
+            <button id="loadSelectedDeckBtn">📂 加载所选卡组</button>
+        </div>
+    </div>
+    <footer>✨ 输入其他3位玩家的ID才能达成4人联机 | 战场卡片点击:横置/重置/返回手牌  | Token移出战场即删除 | 指示物可拖动，点击可调整/删除 | 墓地和放逐区点击可查看所有牌并操作 | 作者:wzy007,如发现bug,可联系邮箱:caesar715@163.com </footer>
+</div>
+
+<div id="topCardsModal" class="modal-overlay"><div class="topcards-modal"><h3>📖 牌库顶的牌</h3><div id="topCardsList"></div><div class="button-group"><button id="closeTopCardsModalBtn">关闭</button></div></div></div>
+<div id="revealRequestModal" class="modal-overlay"><div class="topcards-modal"><h3>👤 对手请求查看你的手牌</h3><p>是否同意展示你当前的手牌？</p><div class="button-group"><button id="agreeRevealBtn">✅ 同意展示</button><button id="declineRevealBtn">❌ 拒绝</button></div></div></div>
+<div id="searchModal" class="modal-overlay"><div class="search-modal"><input type="text" id="modalSearchInput" class="peer-input" style="width:100%;" placeholder="输入卡名搜索牌库"><div class="button-group"><button id="modalSearchBtn">🔍 搜索</button><button id="closeSearchModalBtn">✖ 关闭</button></div><div id="modalSearchResults" class="search-results-modal"></div><div id="modalSearchActions" style="display: none;"><div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;"><span>对 <span id="modalSelectedCardName">—</span> 操作：</span><button class="action-btn" data-target="battlefieldTop">⚔️ 战场(上区)</button><button class="action-btn" data-target="battlefieldBottom">🛡️ 战场(下区)</button><button class="action-btn" data-target="graveyard">💀 墓地</button><button class="action-btn" data-target="exile">🌑 放逐区</button><button class="action-btn" data-target="hand">🖐️ 手牌</button><button class="action-btn" data-target="decktop">📌 牌库顶</button><button id="cancelModalAction">❌ 取消</button></div></div></div></div>
+<div id="card-tooltip"><img src="" alt="卡图"></div>
+
+<script>
+(function(){
+    // ========== 数据状态 ==========
+    let deck = [];
+    let hand = [];
+    let graveyard = [];
+    let exile = [];
+    let battlefieldTop = [];
+    let battlefieldBottom = [];
+    let commander = [];
+    let indicators = [];
+    let commanderIndicators = [];
+    let mainboardList = [];
+    let commanderList = [];
+    let mulliganCount = 0;
+    let gamePhase = 'initial';
+    let selectedIndices = [];
+    let targetX = 0;
+    let selectedCardRef = null;
+    let activeMenu = null;
+    let myLife = 40;
+    let myCommanderLife = 20;
+    
+    // 三个对手的状态
+    let opponentStates = [
+        { deckCount:0, handSize:0, mulliganCount:0, battlefieldTop:[], battlefieldBottom:[], graveyard:[], exile:[], commander:[], commanderIndicators:[], indicators:[], life:40, commanderLife:20, revealedHand:[] },
+        { deckCount:0, handSize:0, mulliganCount:0, battlefieldTop:[], battlefieldBottom:[], graveyard:[], exile:[], commander:[], commanderIndicators:[], indicators:[], life:40, commanderLife:20, revealedHand:[] },
+        { deckCount:0, handSize:0, mulliganCount:0, battlefieldTop:[], battlefieldBottom:[], graveyard:[], exile:[], commander:[], commanderIndicators:[], indicators:[], life:40, commanderLife:20, revealedHand:[] }
+    ];
+    
+    const cardImageMap = new Map();
+    const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'220\' height=\'300\' viewBox=\'0 0 220 300\'%3E%3Crect width=\'220\' height=\'300\' fill=\'%23333333\'/%3E%3Ctext x=\'30\' y=\'150\' fill=\'%23aaa\' font-size=\'16\'%3E暂无图片%3C/text%3E%3C/svg%3E';
+    
+    // ========== 辅助函数 ==========
+    function shuffleArray(arr) { for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+    function getDefaultDecklist() {
+    // 主牌列表（空行之上）
+    const mainCards = [
+        "Amphibian Downpour", "An Offer You Can't Refuse", "Ancient Tomb",
+        "Arcane Signet", "Badgermole Cub", "Basalt Monolith", "Birds of Paradise",
+        "Boseiju, Who Endures", "Breeding Pool", "Chord of Calling", "Chrome Mox",
+        "City of Brass", "Clever Impersonator", "Colossal Skyturtle", "Command Tower",
+        "Commandeer", "Consecrated Sphinx", "Delighted Halfling", "Dispel",
+        "Disrupting Shoal", "Drift of Phantasms", "Elvish Mystic", "Elvish Spirit Guide",
+        "Endurance", "Enduring Vitality", "Exotic Orchard", "Fabricate", "Faerie Mastermind",
+        "Fellwar Stone", "Fierce Guardianship", "Finale of Devastation", "Flooded Strand",
+        "Flusterstorm", "Force of Negation", "Force of Will",
+        ...Array(4).fill("Forest"),  // 4 张森林
+        "Fyndhorn Elves", "High Fae Trickster", "Hinterland Harbor", "Hullbreaker Horror",
+        "Hydroelectric Specimen", "Invasion of Ikoria",
+        ...Array(4).fill("Island"),   // 4 张海岛
+        "Llanowar Elves", "Lotus Petal", "Mana Drain", "Mana Vault", "Mental Misstep",
+        "Mirage Mirror", "Miscast", "Misdirection", "Misty Rainforest", "Mockingbird",
+        "Moonsilver Key", "Mox Amber", "Mox Opal", "Mystic Remora", "Nature's Rhythm",
+        "Otawara, Soaring City", "Pact of Negation", "Phyrexian Metamorph", "Polluted Delta",
+        "Pongify", "Prismatic Vista", "Rapid Hybridization", "Rejuvenating Springs",
+        "Rhystic Study", "Scalding Tarn", "Seedborn Muse", "Simic Signet", "Sol Ring",
+        "Spell Pierce", "Springleaf Drum", "Strix Serenade", "Swan Song",
+        "Talisman of Curiosity", "Tezzeret the Seeker", "The Cabbage Merchant", "The One Ring",
+        "The Unagi of Kyoshi Island", "Thrasios, Triton Hero", "Treasure Vault",
+        "Trophy Mage", "Valley Floodcaller", "Veil of Summer", "Verdant Catacombs",
+        "Walking Ballista", "Wan Shi Tong, Librarian", "Whir of Invention", "Windswept Heath",
+        "Wooded Foothills", "Worldly Tutor", "Yavimaya Coast"
+    ];
+    
+    // 指挥官列表（空行之下）
+    const commanderCards = ["Kinnan, Bonder Prodigy"];
+    
+    return { mainboard: mainCards, commander: commanderCards };
+    }
+    
+    async function fetchCardImage(name) {
+        if(cardImageMap.has(name)) return cardImageMap.get(name);
+        try {
+            const resp = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            if(!resp.ok) throw new Error();
+            const data = await resp.json();
+            let url = data.image_uris?.png || data.card_faces?.[0]?.image_uris?.png;
+            if(url) { cardImageMap.set(name, url); return url; }
+            else { cardImageMap.set(name, null); return null; }
+        } catch(e) { cardImageMap.set(name, null); return null; }
+    }
+    
+    async function preloadAllCardImages() {
+        const allNames = new Set();
+        deck.forEach(n => allNames.add(n));
+        hand.forEach(n => allNames.add(n));
+        graveyard.forEach(n => allNames.add(n));
+        exile.forEach(n => allNames.add(n));
+        battlefieldTop.forEach(c => allNames.add(c.name));
+        battlefieldBottom.forEach(c => allNames.add(c.name));
+        commander.forEach(c => allNames.add(c.name));
+        if(mainboardList) mainboardList.forEach(n => allNames.add(n));
+        if(commanderList) commanderList.forEach(n => allNames.add(n));
+        for(let i=0;i<3;i++) {
+            const s = opponentStates[i];
+            if(s.deckCards) s.deckCards.forEach(n => allNames.add(n));
+            if(s.graveyard) s.graveyard.forEach(n => allNames.add(n));
+            if(s.exile) s.exile.forEach(n => allNames.add(n));
+            if(s.battlefieldTop) s.battlefieldTop.forEach(c => allNames.add(c.name));
+            if(s.battlefieldBottom) s.battlefieldBottom.forEach(c => allNames.add(c.name));
+            if(s.commander) s.commander.forEach(c => allNames.add(c.name));
+        }
+        const toLoad = Array.from(allNames).filter(n => n && !cardImageMap.has(n));
+        if(toLoad.length === 0) return;
+        console.log(`预加载 ${toLoad.length} 张卡图`);
+        for (const name of toLoad) {
+            await fetchCardImage(name);
+            await new Promise(r => setTimeout(r, 30));
+        }
+    }
+    
+    // Token
+    function genTokenId() { return 'tok_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8); }
+    function isTokenCard(card) { return card && card.isToken === true; }
+    
+    function deleteTokenById(tokenId, fromSync = false) {
+        let found = false;
+        const topIdx = battlefieldTop.findIndex(c => c.id === tokenId);
+        if(topIdx !== -1) { battlefieldTop.splice(topIdx,1); found = true; }
+        const bottomIdx = battlefieldBottom.findIndex(c => c.id === tokenId);
+        if(bottomIdx !== -1) { battlefieldBottom.splice(bottomIdx,1); found = true; }
+        if(found && !fromSync) broadcastAction({ type: 'DELETE_TOKEN', tokenId });
+        if(found) renderMyUI();
+        return found;
+    }
+    
+    async function addTokenToGame(tokenName) {
+        try {
+            const query = `name:"${tokenName}" cmc=0 include:extras`;
+            const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&order=released&unique=cards`;
+            const resp = await fetch(url);
+            if(!resp.ok) throw new Error('API error');
+            const data = await resp.json();
+            if(!data.data || data.data.length === 0) { alert(`未找到符合条件的Token: ${tokenName}`); return; }
+            const firstCard = data.data[0];
+            const cardName = firstCard.name;
+            let imgUrl = firstCard.image_uris?.png || firstCard.card_faces?.[0]?.image_uris?.png;
+            if(imgUrl) cardImageMap.set(cardName, imgUrl);
+            else cardImageMap.set(cardName, null);
+            const rect = document.getElementById('myTopZone')?.getBoundingClientRect() || { width: 300, height: 180 };
+            const newX = Math.random() * (rect.width - 90) + 10;
+            const newY = Math.random() * (rect.height - 122) + 10;
+            const tokenObj = { name: cardName, tapped: false, x: newX, y: newY, isToken: true, id: genTokenId() };
+            battlefieldTop.push(tokenObj);
+            renderMyUI();
+            broadcastAction({ type: 'ADD_TOKEN', token: { ...tokenObj, x: newX, y: newY } });
+            preloadAllCardImages();
+        } catch(e) { console.error(e); alert(`获取Token失败: ${e.message}`); }
+    }
+    
+    function resetAllTapped() {
+        let changed = false;
+        for(let card of battlefieldTop) { if(card.tapped) { card.tapped = false; changed = true; } }
+        for(let card of battlefieldBottom) { if(card.tapped) { card.tapped = false; changed = true; } }
+        if(changed) {
+            renderMyUI();
+            broadcastAction({ type: 'RESET_ALL_TAPPED' });
+        }
+    }
+    
+    // 指示物
+    function genIndicatorId() { return 'ind_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8); }
+    function addIndicator(targetZone = 'battlefield') {
+        let type = prompt("选择指示物类型:\n1: +1/+1\n2: -1/-1\n3: 自定义", "1");
+        let value = null, text = '';
+        if (type === "1") { value = 1; text = '+1/+1'; }
+        else if (type === "2") { value = -1; text = '-1/-1'; }
+        else if (type === "3") {
+            let input = prompt("请输入指示物文字:", "自定义");
+            if (!input) return;
+            text = input;
+        } else return;
+        const rect = document.getElementById('myTopZone')?.getBoundingClientRect() || { width: 300, height: 180 };
+        const newX = Math.random() * (rect.width - 45) + 10;
+        const newY = Math.random() * (rect.height - 45) + 10;
+        const indicator = { id: genIndicatorId(), type, value, text, x: newX, y: newY };
+        if (targetZone === 'battlefield') {
+            indicators.push(indicator);
+            broadcastAction({ type: 'ADD_INDICATOR', indicator });
+        } else if (targetZone === 'commander') {
+            commanderIndicators.push(indicator);
+            broadcastAction({ type: 'ADD_COMMANDER_INDICATOR', indicator });
+        }
+        renderMyUI();
+    }
+    function updateIndicatorValue(id, newValue, isCommander = false) {
+        let arr = isCommander ? commanderIndicators : indicators;
+        const ind = arr.find(i => i.id === id);
+        if (ind && ind.type !== 'custom') {
+            ind.value = newValue;
+            renderMyUI();
+            broadcastAction({ type: isCommander ? 'UPDATE_COMMANDER_INDICATOR' : 'UPDATE_INDICATOR', id, value: newValue });
+        }
+    }
+    function deleteIndicator(id, isCommander = false, fromSync = false) {
+        let arr = isCommander ? commanderIndicators : indicators;
+        const idx = arr.findIndex(i => i.id === id);
+        if(idx !== -1) {
+            arr.splice(idx,1);
+            renderMyUI();
+            if(!fromSync) broadcastAction({ type: isCommander ? 'DELETE_COMMANDER_INDICATOR' : 'DELETE_INDICATOR', id });
+        }
+    }
+    function moveIndicator(id, x, y, isCommander = false, fromSync = false) {
+        let arr = isCommander ? commanderIndicators : indicators;
+        const ind = arr.find(i => i.id === id);
+        if(ind) {
+            ind.x = x; ind.y = y;
+            renderMyUI();
+            if(!fromSync) broadcastAction({ type: isCommander ? 'MOVE_COMMANDER_INDICATOR' : 'MOVE_INDICATOR', id, x, y });
+        }
+    }
+    let indicatorMenu = null;
+    function showIndicatorAddMenu() {
+        if (indicatorMenu) indicatorMenu.remove();
+        const menu = document.createElement('div'); menu.className = 'indicator-menu';
+        const btn1 = document.createElement('button'); btn1.textContent = '战场指示物';
+        btn1.onclick = () => { addIndicator('battlefield'); closeIndicatorMenu(); };
+        const btn2 = document.createElement('button'); btn2.textContent = '指挥官指示物';
+        btn2.onclick = () => { addIndicator('commander'); closeIndicatorMenu(); };
+        const btnCancel = document.createElement('button'); btnCancel.textContent = '取消';
+        btnCancel.onclick = closeIndicatorMenu;
+        menu.appendChild(btn1); menu.appendChild(btn2); menu.appendChild(btnCancel);
+        document.body.appendChild(menu);
+        const rect = document.getElementById('addIndicatorBtn').getBoundingClientRect();
+        menu.style.left = rect.left + 'px';
+        menu.style.top = (rect.top - 10) + 'px';
+        indicatorMenu = menu;
+        setTimeout(() => document.addEventListener('click', function listener(e) { if(!menu.contains(e.target) && e.target !== document.getElementById('addIndicatorBtn')) { closeIndicatorMenu(); document.removeEventListener('click', listener); } }), 0);
+    }
+    function closeIndicatorMenu() { if(indicatorMenu) indicatorMenu.remove(); indicatorMenu = null; }
+    
+    // 骰子
+    function rollDice() {
+        const result = Math.floor(Math.random() * 6) + 1;
+        document.getElementById('myDiceResult').innerHTML = `🎲 ${result}`;
+        broadcastAction({ type: 'DICE_RESULT', result });
+    }
+    function receiveDiceResult(oppIdx, result) {
+        const statusSpan = document.getElementById(`opp${oppIdx}Status`);
+        if(statusSpan) statusSpan.innerHTML = `🎲 ${result}`;
+        else alert(`对手${oppIdx+1}掷出了${result}`);
+    }
+    
+    // 查看对方牌库顶
+    function requestOpponentTopDeck(oppIdx) {
+        const conn = connections[oppIdx];
+        if(!conn || !conn.open) { alert(`对手${oppIdx+1}未连接`); return; }
+        conn.send(JSON.stringify({ type: 'REQUEST_TOP_DECK', from: myPeerId }));
+    }
+    function handleTopDeckRequest(senderConn) {
+        if(deck.length === 0) {
+            senderConn.send(JSON.stringify({ type: 'TOP_DECK_RESPONSE', cardName: null }));
+            alert("你的牌库为空，无法展示牌库顶。");
+            return;
+        }
+        const confirmMsg = confirm("对手请求查看你的牌库顶，是否同意？");
+        if(confirmMsg) {
+            const topCard = deck[0];
+            senderConn.send(JSON.stringify({ type: 'TOP_DECK_RESPONSE', cardName: topCard }));
+        } else {
+            senderConn.send(JSON.stringify({ type: 'TOP_DECK_RESPONSE', cardName: null }));
+        }
+    }
+    function receiveTopDeckResponse(oppIdx, cardName) {
+        if(cardName === null) alert(`对手${oppIdx+1}拒绝了牌库顶查看请求或牌库为空。`);
+        else alert(`对手${oppIdx+1}的牌库顶是：${cardName}`);
+    }
+    
+    // 请求手牌
+    function requestHandReveal(oppIdx) {
+        const conn = connections[oppIdx];
+        if(!conn || !conn.open) { alert(`对手${oppIdx+1}未连接`); return; }
+        conn.send(JSON.stringify({ type: 'REQUEST_HAND_REVEAL', from: myPeerId }));
+    }
+    function handleHandRevealRequest(senderConn) {
+        const modal = document.getElementById('revealRequestModal');
+        modal.style.display = 'flex';
+        const agree = () => {
+            senderConn.send(JSON.stringify({ type: 'HAND_REVEAL_RESPONSE', hand: [...hand] }));
+            modal.style.display = 'none';
+            cleanup();
+        };
+        const decline = () => {
+            senderConn.send(JSON.stringify({ type: 'HAND_REVEAL_RESPONSE', hand: null }));
+            modal.style.display = 'none';
+            cleanup();
+        };
+        function cleanup() {
+            document.getElementById('agreeRevealBtn').removeEventListener('click', agree);
+            document.getElementById('declineRevealBtn').removeEventListener('click', decline);
+        }
+        document.getElementById('agreeRevealBtn').addEventListener('click', agree);
+        document.getElementById('declineRevealBtn').addEventListener('click', decline);
+    }
+    function receiveHandReveal(oppIdx, handArray) {
+        opponentStates[oppIdx].revealedHand = handArray || [];
+        renderOpponentUI(oppIdx);
+    }
+    
+    // 查看牌库顶X张
+    let pendingTopCards = [];
+    function viewTopCards() {
+        let x = prompt("查看牌库顶几张牌？", "3");
+        if(x === null) return;
+        let num = parseInt(x);
+        if(isNaN(num) || num < 1) num = 1;
+        if(deck.length === 0) { alert("牌库已空"); return; }
+        num = Math.min(num, deck.length);
+        pendingTopCards = deck.slice(0, num);
+        const modal = document.getElementById('topCardsModal');
+        if(!modal) return;
+        const modalContent = modal.querySelector('.topcards-modal');
+        modalContent.innerHTML = `<h3>📖 牌库顶的牌</h3><div id="topCardsOperations" class="topcard-operations"></div><div class="button-group"><button id="closeTopCardsOperationsBtn">关闭</button></div>`;
+        const operationsDiv = document.getElementById('topCardsOperations');
+        const closeBtn = document.getElementById('closeTopCardsOperationsBtn');
+        function refreshModal() {
+            operationsDiv.innerHTML = '';
+            if(pendingTopCards.length === 0) { modal.style.display = 'none'; return; }
+            pendingTopCards.forEach((card, idx) => {
+                const row = document.createElement('div');
+                row.className = 'topcard-row';
+                row.innerHTML = `
+                    <div class="card-name">${card}</div>
+                    <div class="button-group">
+                        <button class="top-op top-keep-top" data-idx="${idx}">📌 放回牌库顶</button>
+                        <button class="top-op top-keep-bottom" data-idx="${idx}">📌 放回牌库底</button>
+                        <button class="top-op top-to-hand" data-idx="${idx}">🖐️ 加入手牌</button>
+                        <button class="top-op top-reveal-hand" data-idx="${idx}">👁️ 展示后加入手牌</button>
+                        <button class="top-op top-to-grave" data-idx="${idx}">💀 放入墓地</button>
+                    </div>
+                `;
+                operationsDiv.appendChild(row);
+            });
+            document.querySelectorAll('.top-op').forEach(btn => {
+                btn.removeEventListener('click', handleTopOp);
+                btn.addEventListener('click', handleTopOp);
+            });
+        }
+        function handleTopOp(e) {
+            const btn = e.currentTarget;
+            const idx = parseInt(btn.dataset.idx);
+            const card = pendingTopCards[idx];
+            if(!card) return;
+            if(btn.classList.contains('top-keep-top')) {
+                const deckIdx = deck.findIndex(c => c === card);
+                if(deckIdx !== -1) deck.splice(deckIdx, 1);
+                deck.unshift(card);
+                broadcastAction({ type: 'TOP_CARD_MOVE', card, action: 'top' });
+            }
+            else if(btn.classList.contains('top-keep-bottom')) {
+                const deckIdx = deck.findIndex(c => c === card);
+                if(deckIdx !== -1) deck.splice(deckIdx, 1);
+                deck.push(card);
+                broadcastAction({ type: 'TOP_CARD_MOVE', card, action: 'bottom' });
+            }
+            else if(btn.classList.contains('top-to-hand')) {
+                const deckIdx = deck.findIndex(c => c === card);
+                if(deckIdx !== -1) deck.splice(deckIdx, 1);
+                hand.push(card);
+                renderMyUI();
+                broadcastAction({ type: 'TOP_CARD_MOVE', card, action: 'hand' });
+                preloadAllCardImages();
+            }
+            else if(btn.classList.contains('top-reveal-hand')) {
+                const deckIdx = deck.findIndex(c => c === card);
+                if(deckIdx !== -1) deck.splice(deckIdx, 1);
+                hand.push(card);
+                renderMyUI();
+                broadcastAction({ type: 'REVEALED_ADD_TO_HAND', card });
+                preloadAllCardImages();
+            }
+            else if(btn.classList.contains('top-to-grave')) {
+                const deckIdx = deck.findIndex(c => c === card);
+                if(deckIdx !== -1) deck.splice(deckIdx, 1);
+                graveyard.push(card);
+                renderMyUI();
+                broadcastAction({ type: 'TOP_CARD_MOVE', card, action: 'grave' });
+                preloadAllCardImages();
+            }
+            pendingTopCards.splice(idx, 1);
+            refreshModal();
+            renderMyUI();
+        }
+        refreshModal();
+        modal.style.display = 'flex';
+        if(closeBtn) {
+            closeBtn.onclick = () => {
+                if(pendingTopCards.length > 0) {
+                    for(let i = pendingTopCards.length-1; i >= 0; i--) deck.unshift(pendingTopCards[i]);
+                    renderMyUI();
+                }
+                modal.style.display = 'none';
+                pendingTopCards = [];
+                modalContent.innerHTML = `<h3>📖 牌库顶的牌</h3><div id="topCardsList"></div><div class="button-group"><button id="closeTopCardsModalBtn">关闭</button></div>`;
+                document.getElementById('closeTopCardsModalBtn').onclick = () => modal.style.display = 'none';
+            };
+        }
+    }
+    
+    // 区域折叠显示（墓地/放逐区）- 超过2张时折叠
+    function createZoneStack(zoneName, cards, onItemClick) {
+        const container = document.createElement('div');
+        container.className = 'zone-stack';
+        if(cards.length === 0) {
+            container.innerHTML = '<span>空</span>';
+            return container;
+        }
+        if(cards.length <= 2) {
+            cards.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'opponent-card';
+                const img = document.createElement('img');
+                img.src = cardImageMap.get(card.name || card) || PLACEHOLDER;
+                cardDiv.appendChild(img);
+                if(onItemClick) {
+                    cardDiv.style.cursor = 'pointer';
+                    cardDiv.onclick = (e) => { e.stopPropagation(); if(onItemClick) onItemClick(card); };
+                }
+                container.appendChild(cardDiv);
+            });
+            return container;
+        }
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'card-preview';
+        const previewImg = document.createElement('img');
+        previewImg.src = cardImageMap.get(cards[0].name || cards[0]) || PLACEHOLDER;
+        previewDiv.appendChild(previewImg);
+        const countSpan = document.createElement('span');
+        countSpan.innerText = `+${cards.length-1}`;
+        container.appendChild(previewDiv);
+        container.appendChild(countSpan);
+        container.style.cursor = 'pointer';
+        container.onclick = () => {
+            showZoneModal(zoneName, cards, onItemClick);
+        };
+        return container;
+    }
+    
+    function showZoneModal(title, cards, onItemClick) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.display = 'flex';
+        const content = document.createElement('div');
+        content.className = 'zone-modal';
+        content.innerHTML = `<h3>${title}</h3><div class="card-list"></div><div class="button-group"><button class="close-zone-modal">关闭</button></div>`;
+        const listDiv = content.querySelector('.card-list');
+        cards.forEach((card, idx) => {
+            const cardName = card.name || card;
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'zone-card-item';
+            itemDiv.innerHTML = `<div class="card-name">${cardName}</div><div class="button-group"><button class="move-to-hand">🖐️ 回手牌</button><button class="move-to-battlefield-top">⚔️ 战场(上)</button><button class="move-to-battlefield-bottom">🛡️ 战场(下)</button></div>`;
+            const handBtn = itemDiv.querySelector('.move-to-hand');
+            const topBtn = itemDiv.querySelector('.move-to-battlefield-top');
+            const bottomBtn = itemDiv.querySelector('.move-to-battlefield-bottom');
+            handBtn.onclick = () => { if(onItemClick) onItemClick(card, 'hand'); modal.remove(); };
+            topBtn.onclick = () => { if(onItemClick) onItemClick(card, 'battlefieldTop'); modal.remove(); };
+            bottomBtn.onclick = () => { if(onItemClick) onItemClick(card, 'battlefieldBottom'); modal.remove(); };
+            listDiv.appendChild(itemDiv);
+        });
+        const closeBtn = content.querySelector('.close-zone-modal');
+        closeBtn.onclick = () => modal.remove();
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+    }
+    
+    // ========== UI渲染 ==========
+    function createCardElement(cardData, zone, idx) {
+        const isObj = typeof cardData === 'object';
+        const cardName = isObj ? cardData.name : cardData;
+        const tapped = isObj ? cardData.tapped : false;
+        const isToken = isObj ? cardData.isToken === true : false;
+        const div = document.createElement('div');
+        div.className = 'card';
+        if(tapped) div.classList.add('tapped');
+        div.setAttribute('data-cardname', cardName);
+        const img = document.createElement('img');
+        const cached = cardImageMap.get(cardName);
+        if(cached) img.src = cached;
+        else if(cached === null) img.src = PLACEHOLDER;
+        else { img.src = PLACEHOLDER; fetchCardImage(cardName).then(url => { if(div.isConnected) img.src = url || PLACEHOLDER; }); }
+        div.appendChild(img);
+        if(isToken) { const badge = document.createElement('div'); badge.className = 'token-badge'; badge.innerText = 'Token'; div.appendChild(badge); }
+        if(zone === 'hand' && gamePhase === 'playing') div.addEventListener('click', (e) => { e.stopPropagation(); selectHandCard(idx); });
+        else if(zone === 'hand' && gamePhase === 'selecting') div.addEventListener('click', (e) => { e.stopPropagation(); handleSelectingCardClick(idx); });
+        else if((zone === 'battlefieldTop' || zone === 'battlefieldBottom') && gamePhase === 'playing') div.addEventListener('click', (e) => { e.stopPropagation(); showBattlefieldMenu(zone, idx, cardName); });
+        else if(zone === 'graveyard' || zone === 'exile') div.addEventListener('click', (e) => { e.stopPropagation(); showGraveMenu(zone, idx, cardName); });
+        else if(zone === 'commander') div.addEventListener('click', (e) => { e.stopPropagation(); showCommanderMenu(idx); });
+        if(gamePhase === 'playing') {
+            div.draggable = true;
+            div.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', JSON.stringify({ zone, idx, cardName, tapped, isToken, id: isObj ? cardData.id : null }));
+                e.dataTransfer.effectAllowed = 'move';
+            });
+        } else div.draggable = false;
+        if(zone === 'hand' && gamePhase === 'selecting' && selectedIndices.includes(idx)) div.classList.add('selected-card');
+        return div;
+    }
+    
+    function createIndicatorElement(indicator, isCommander = false) {
+        const div = document.createElement('div');
+        div.className = 'indicator free-indicator';
+        div.style.position = 'absolute';
+        div.style.left = indicator.x + 'px';
+        div.style.top = indicator.y + 'px';
+        div.style.width = '36px';
+        div.style.height = '36px';
+        div.style.background = '#3a2a1a';
+        div.style.border = '2px solid #e6c384';
+        div.style.borderRadius = '6px';
+        div.style.display = 'flex';
+        div.style.flexDirection = 'column';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.cursor = 'grab';
+        div.style.zIndex = '200';
+        if(indicator.type === 'p1p1') div.innerHTML = `<div class="indicator-value">+${indicator.value}</div><div class="indicator-text">+1/+1</div>`;
+        else if(indicator.type === 'm1m1') div.innerHTML = `<div class="indicator-value">${indicator.value}</div><div class="indicator-text">-1/-1</div>`;
+        else div.innerHTML = `<div class="indicator-text">${indicator.text}</div>`;
+        div.setAttribute('data-indicator-id', indicator.id);
+        div.addEventListener('click', (e) => { e.stopPropagation(); showIndicatorMenu(indicator.id, isCommander); });
+        div.draggable = true;
+        div.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'indicator', id: indicator.id, isCommander })); e.dataTransfer.effectAllowed = 'move'; });
+        return div;
+    }
+    
+    function showIndicatorMenu(id, isCommander) {
+        if(activeMenu) closeMenu();
+        const menu = document.createElement('div'); menu.className = 'float-menu';
+        const arr = isCommander ? commanderIndicators : indicators;
+        const indicator = arr.find(i => i.id === id);
+        if(!indicator) return;
+        if(indicator.type === 'p1p1' || indicator.type === 'm1m1') {
+            const adjustBtn = document.createElement('button'); adjustBtn.textContent = '调整数值';
+            adjustBtn.onclick = () => {
+                let newVal = prompt("输入新数值:", indicator.value);
+                if(newVal !== null) { let num = parseInt(newVal); if(!isNaN(num)) updateIndicatorValue(id, num, isCommander); }
+                closeMenu();
+            };
+            menu.appendChild(adjustBtn);
+        }
+        const delBtn = document.createElement('button'); delBtn.textContent = '删除';
+        delBtn.onclick = () => { deleteIndicator(id, isCommander); closeMenu(); };
+        menu.appendChild(delBtn);
+        document.body.appendChild(menu);
+        const rect = event?.target?.closest('.indicator')?.getBoundingClientRect();
+        if(rect) { menu.style.left = rect.left + 'px'; menu.style.top = (rect.top - 45) + 'px'; }
+        activeMenu = menu;
+        setTimeout(() => document.addEventListener('click', function listener(e) { if(!menu.contains(e.target)) { closeMenu(); document.removeEventListener('click', listener); } }), 0);
+    }
+    
+    function showCommanderMenu(idx) {
+        if(activeMenu) closeMenu();
+        const menu = document.createElement('div'); menu.className = 'float-menu';
+        const moveToHand = document.createElement('button'); moveToHand.textContent = '移到手牌';
+        const moveToTop = document.createElement('button'); moveToTop.textContent = '移到战场(上)';
+        const moveToBottom = document.createElement('button'); moveToBottom.textContent = '移到战场(下)';
+        moveToHand.onclick = () => { 
+            const card = commander[idx];
+            if(card) {
+                commander.splice(idx,1);
+                hand.push(card.name);
+                renderMyUI();
+                broadcastAction({ type: 'MOVE_COMMANDER_TO_HAND', cardName: card.name });
+            }
+            closeMenu();
+        };
+        moveToTop.onclick = () => {
+            const card = commander[idx];
+            if(card) {
+                commander.splice(idx,1);
+                battlefieldTop.push({ name: card.name, tapped: false, x: 40, y: 40, isToken: false });
+                renderMyUI();
+                broadcastAction({ type: 'MOVE_COMMANDER_TO_BATTLEFIELD', target: 'top', cardName: card.name });
+            }
+            closeMenu();
+        };
+        moveToBottom.onclick = () => {
+            const card = commander[idx];
+            if(card) {
+                commander.splice(idx,1);
+                battlefieldBottom.push({ name: card.name, tapped: false, isToken: false });
+                renderMyUI();
+                broadcastAction({ type: 'MOVE_COMMANDER_TO_BATTLEFIELD', target: 'bottom', cardName: card.name });
+            }
+            closeMenu();
+        };
+        menu.appendChild(moveToHand);
+        menu.appendChild(moveToTop);
+        menu.appendChild(moveToBottom);
+        document.body.appendChild(menu);
+        const rect = event?.target?.closest('.card')?.getBoundingClientRect();
+        if(rect) { menu.style.left = rect.left + 'px'; menu.style.top = (rect.top - 45) + 'px'; }
+        activeMenu = menu;
+        setTimeout(() => document.addEventListener('click', function listener(e) { if(!menu.contains(e.target)) { closeMenu(); document.removeEventListener('click', listener); } }), 0);
+    }
+    
+    function renderMyUI() {
+        document.getElementById('myDeckCount').innerText = deck.length;
+        document.getElementById('myHandCount').innerText = hand.length;
+        document.getElementById('myMulliganCount').innerText = mulliganCount;
+        document.getElementById('myTopCount').innerText = battlefieldTop.length;
+        document.getElementById('myBottomCount').innerText = battlefieldBottom.length;
+        document.getElementById('myGraveCount').innerText = graveyard.length;
+        document.getElementById('myExileCount').innerText = exile.length;
+        document.getElementById('myLifeValue').innerText = myLife;
+        document.getElementById('myCommanderLifeValue').innerText = myCommanderLife;
+        
+        const topZone = document.getElementById('myTopZone'); topZone.innerHTML = '';
+        battlefieldTop.forEach((card, idx) => {
+            let el = createCardElement(card, 'battlefieldTop', idx);
+            el.classList.add('free-card');
+            el.style.position = 'absolute';
+            el.style.left = (card.x || 20) + 'px';
+            el.style.top = (card.y || 20) + 'px';
+            topZone.appendChild(el);
+        });
+        indicators.forEach(ind => { let el = createIndicatorElement(ind); topZone.appendChild(el); });
+        
+        const bottomGrid = document.getElementById('myBottomZone'); bottomGrid.innerHTML = '';
+        if(battlefieldBottom.length === 0) bottomGrid.innerHTML = '<div class="empty-msg">空</div>';
+        else battlefieldBottom.forEach((c,i)=> bottomGrid.appendChild(createCardElement(c,'battlefieldBottom',i)));
+        
+        const graveContainer = document.getElementById('myGraveyard');
+        graveContainer.innerHTML = '';
+        if(graveyard.length === 0) graveContainer.innerHTML = '<div class="empty-msg">空</div>';
+        else {
+            const stack = createZoneStack('墓地', graveyard.map(n => ({name:n})), (card, action) => {
+                const idx = graveyard.findIndex(c => c === card.name);
+                if(idx !== -1) {
+                    graveyard.splice(idx,1);
+                    if(action === 'hand') hand.push(card.name);
+                    else if(action === 'battlefieldTop') battlefieldTop.push({ name: card.name, tapped: false, x: 40, y: 40, isToken: false });
+                    else if(action === 'battlefieldBottom') battlefieldBottom.push({ name: card.name, tapped: false, isToken: false });
+                    renderMyUI();
+                    broadcastAction({ type: 'MOVE_FROM_GRAVE', fromZone: 'graveyard', idx, target: action, cardName: card.name });
+                    preloadAllCardImages();
+                }
+            });
+            graveContainer.appendChild(stack);
+        }
+        
+        const exileContainer = document.getElementById('myExile');
+        exileContainer.innerHTML = '';
+        if(exile.length === 0) exileContainer.innerHTML = '<div class="empty-msg">空</div>';
+        else {
+            const stack = createZoneStack('放逐区', exile.map(n => ({name:n})), (card, action) => {
+                const idx = exile.findIndex(c => c === card.name);
+                if(idx !== -1) {
+                    exile.splice(idx,1);
+                    if(action === 'hand') hand.push(card.name);
+                    else if(action === 'battlefieldTop') battlefieldTop.push({ name: card.name, tapped: false, x: 40, y: 40, isToken: false });
+                    else if(action === 'battlefieldBottom') battlefieldBottom.push({ name: card.name, tapped: false, isToken: false });
+                    renderMyUI();
+                    broadcastAction({ type: 'MOVE_FROM_GRAVE', fromZone: 'exile', idx, target: action, cardName: card.name });
+                    preloadAllCardImages();
+                }
+            });
+            exileContainer.appendChild(stack);
+        }
+        
+        const commanderContainer = document.getElementById('myCommander');
+        commanderContainer.innerHTML = '';
+        commander.forEach((card, idx) => {
+            commanderContainer.appendChild(createCardElement(card, 'commander', idx));
+        });
+        commanderIndicators.forEach(ind => {
+            let el = createIndicatorElement(ind, true);
+            commanderContainer.appendChild(el);
+        });
+        if(commander.length === 0 && commanderIndicators.length === 0) commanderContainer.innerHTML = '<div class="empty-msg">空</div>';
+        
+        const handDiv = document.getElementById('myHandZone'); handDiv.innerHTML = '';
+        if(hand.length===0) handDiv.innerHTML = '<div class="empty-msg">无手牌</div>';
+        else hand.forEach((c,i)=> handDiv.appendChild(createCardElement(c,'hand',i)));
+    }
+    
+    function renderOpponentUI(oppIdx) {
+        const s = opponentStates[oppIdx];
+        const prefix = `opp${oppIdx}`;
+        document.getElementById(`${prefix}DeckCount`).innerText = s.deckCount;
+        document.getElementById(`${prefix}HandCount`).innerText = s.handSize;
+        document.getElementById(`${prefix}MulliganCount`).innerText = s.mulliganCount;
+        document.getElementById(`${prefix}TopCount`).innerText = s.battlefieldTop.length;
+        document.getElementById(`${prefix}BottomCount`).innerText = s.battlefieldBottom.length;
+        document.getElementById(`${prefix}GraveCount`).innerText = s.graveyard.length;
+        document.getElementById(`${prefix}ExileCount`).innerText = s.exile.length;
+        document.getElementById(`${prefix}LifeValue`).innerText = s.life;
+        document.getElementById(`${prefix}CommanderLifeValue`).innerText = s.commanderLife;
+        document.getElementById(`${prefix}RevealedCount`).innerText = s.revealedHand.length;
+        
+        const topZone = document.getElementById(`${prefix}TopZone`); topZone.innerHTML = '';
+        s.battlefieldTop.forEach((card, idx) => {
+            let div = document.createElement('div'); div.className = 'opponent-card'; if(card.tapped) div.classList.add('tapped');
+            let img = document.createElement('img'); let url = cardImageMap.get(card.name); img.src = url || PLACEHOLDER;
+            if(!cardImageMap.has(card.name)) fetchCardImage(card.name).then(u=>{ if(div.isConnected) img.src=u||PLACEHOLDER; });
+            div.appendChild(img); div.style.position = 'absolute'; div.style.left = (card.x || 20) + 'px'; div.style.top = (card.y || 20) + 'px';
+            if(card.isToken) { let badge = document.createElement('div'); badge.className='token-badge'; badge.innerText='Token'; div.appendChild(badge); }
+            div.setAttribute('data-cardname', card.name);
+            topZone.appendChild(div);
+        });
+        if(s.indicators) {
+            s.indicators.forEach(ind => {
+                let div = createIndicatorElement(ind);
+                topZone.appendChild(div);
+            });
+        }
+        
+        const bottomDiv = document.getElementById(`${prefix}BottomZone`); bottomDiv.innerHTML = '';
+        s.battlefieldBottom.forEach((c,i)=>{
+            let div = document.createElement('div'); div.className = 'opponent-card'; if(c.tapped) div.classList.add('tapped');
+            let img = document.createElement('img'); img.src = cardImageMap.get(c.name) || PLACEHOLDER; div.appendChild(img);
+            if(c.isToken) { let badge = document.createElement('div'); badge.className='token-badge'; badge.innerText='Token'; div.appendChild(badge); }
+            div.setAttribute('data-cardname', c.name);
+            bottomDiv.appendChild(div);
+        });
+        
+        const graveContainer = document.getElementById(`${prefix}Graveyard`); graveContainer.innerHTML = '';
+        if(s.graveyard.length === 0) graveContainer.innerHTML = '<div class="empty-msg">空</div>';
+        else {
+            const stack = createZoneStack('墓地', s.graveyard.map(n => ({name:n})), null);
+            graveContainer.appendChild(stack);
+        }
+        
+        const exileContainer = document.getElementById(`${prefix}Exile`); exileContainer.innerHTML = '';
+        if(s.exile.length === 0) exileContainer.innerHTML = '<div class="empty-msg">空</div>';
+        else {
+            const stack = createZoneStack('放逐区', s.exile.map(n => ({name:n})), null);
+            exileContainer.appendChild(stack);
+        }
+        
+        const commanderContainer = document.getElementById(`${prefix}Commander`); commanderContainer.innerHTML = '';
+        if(s.commander) {
+            s.commander.forEach(card => {
+                let div = document.createElement('div'); div.className = 'opponent-card';
+                let img = document.createElement('img'); img.src = cardImageMap.get(card.name) || PLACEHOLDER;
+                div.appendChild(img); div.setAttribute('data-cardname', card.name);
+                commanderContainer.appendChild(div);
+            });
+        }
+        if(s.commanderIndicators) {
+            s.commanderIndicators.forEach(ind => {
+                let div = createIndicatorElement(ind, true);
+                commanderContainer.appendChild(div);
+            });
+        }
+        if((!s.commander || s.commander.length===0) && (!s.commanderIndicators || s.commanderIndicators.length===0)) commanderContainer.innerHTML = '<div class="empty-msg">空</div>';
+        
+        const handDiv = document.getElementById(`${prefix}HandGrid`); handDiv.innerHTML = '';
+        const total = s.handSize;
+        const revealed = s.revealedHand;
+        for(let i=0; i<total; i++) {
+            if(i < revealed.length && revealed[i]) {
+                let cardName = revealed[i]; let div = document.createElement('div'); div.className = 'revealed-hand-card';
+                let img = document.createElement('img'); img.src = cardImageMap.get(cardName) || PLACEHOLDER;
+                if(!cardImageMap.has(cardName)) fetchCardImage(cardName).then(u=>{ if(div.isConnected) img.src=u||PLACEHOLDER; });
+                div.appendChild(img); div.setAttribute('data-cardname', cardName);
+                handDiv.appendChild(div);
+            } else {
+                let back = document.createElement('div'); back.className='opponent-card'; back.style.background='#3a2e22'; back.style.display='flex'; back.style.alignItems='center'; back.style.justifyContent='center'; back.innerText = '?'; back.style.fontSize='20px'; back.style.color='#c9ae6e';
+                handDiv.appendChild(back);
+            }
+        }
+        if(total===0) handDiv.innerHTML='<div class="empty-msg">空</div>';
+    }
+    
+    // 战场菜单
+    function showBattlefieldMenu(zone, idx, cardName) {
+        if(activeMenu) closeMenu();
+        const menu = document.createElement('div'); menu.className = 'float-menu';
+        const tapBtn = document.createElement('button'); tapBtn.textContent = '横置';
+        const untapBtn = document.createElement('button'); untapBtn.textContent = '重置';
+        const retBtn = document.createElement('button'); retBtn.textContent = '返回手牌';
+        tapBtn.onclick = () => { toggleTapped(zone, idx, true); closeMenu(); };
+        untapBtn.onclick = () => { toggleTapped(zone, idx, false); closeMenu(); };
+        retBtn.onclick = () => { returnToHand(zone, idx); closeMenu(); };
+        menu.appendChild(tapBtn); menu.appendChild(untapBtn); menu.appendChild(retBtn);
+        document.body.appendChild(menu);
+        const rect = event?.target?.closest('.card')?.getBoundingClientRect();
+        if(rect) { menu.style.left = rect.left + 'px'; menu.style.top = (rect.top - 45) + 'px'; }
+        activeMenu = menu;
+        setTimeout(() => document.addEventListener('click', function listener(e) { if(!menu.contains(e.target)) { closeMenu(); document.removeEventListener('click', listener); } }), 0);
+    }
+    function toggleTapped(zone, idx, tapped) {
+        let card = null;
+        if(zone === 'battlefieldTop' && battlefieldTop[idx]) card = battlefieldTop[idx];
+        else if(zone === 'battlefieldBottom' && battlefieldBottom[idx]) card = battlefieldBottom[idx];
+        if(card && card.tapped !== tapped) {
+            card.tapped = tapped;
+            renderMyUI();
+            broadcastAction({ type: 'TAP_TOGGLE', zone, idx, tapped, cardName: card.name, tokenId: card.id });
+        }
+    }
+    function returnToHand(zone, idx) {
+        let card = null;
+        if(zone === 'battlefieldTop' && battlefieldTop[idx]) card = battlefieldTop[idx];
+        else if(zone === 'battlefieldBottom' && battlefieldBottom[idx]) card = battlefieldBottom[idx];
+        if(!card) return;
+        if(isTokenCard(card)) { deleteTokenById(card.id); return; }
+        let cardName = card.name;
+        if(zone === 'battlefieldTop') battlefieldTop.splice(idx,1);
+        else battlefieldBottom.splice(idx,1);
+        hand.push(cardName);
+        renderMyUI();
+        broadcastAction({ type: 'RETURN_TO_HAND', zone, idx, cardName });
+    }
+    function showGraveMenu(zone, idx, cardName) {
+        if(activeMenu) closeMenu();
+        const menu = document.createElement('div'); menu.className = 'float-menu';
+        const toTop = document.createElement('button'); toTop.textContent = '移到战场(上)';
+        const toBottom = document.createElement('button'); toBottom.textContent = '移到战场(下)';
+        const toHand = document.createElement('button'); toHand.textContent = '回手牌';
+        toTop.onclick = () => { moveGraveTo(zone, idx, 'battlefieldTop'); closeMenu(); };
+        toBottom.onclick = () => { moveGraveTo(zone, idx, 'battlefieldBottom'); closeMenu(); };
+        toHand.onclick = () => { moveGraveTo(zone, idx, 'hand'); closeMenu(); };
+        menu.appendChild(toTop); menu.appendChild(toBottom); menu.appendChild(toHand);
+        document.body.appendChild(menu);
+        const rect = event?.target?.closest('.card')?.getBoundingClientRect();
+        if(rect) { menu.style.left = rect.left + 'px'; menu.style.top = (rect.top - 45) + 'px'; }
+        activeMenu = menu;
+        setTimeout(() => document.addEventListener('click', function listener(e) { if(!menu.contains(e.target)) { closeMenu(); document.removeEventListener('click', listener); } }), 0);
+    }
+    function moveGraveTo(fromZone, idx, target) {
+        let cardName = '';
+        if(fromZone === 'graveyard' && graveyard[idx]) { cardName = graveyard[idx]; graveyard.splice(idx,1); }
+        else if(fromZone === 'exile' && exile[idx]) { cardName = exile[idx]; exile.splice(idx,1); }
+        if(cardName) {
+            if(target === 'hand') hand.push(cardName);
+            else if(target === 'battlefieldTop') battlefieldTop.push({ name: cardName, tapped: false, x: 40, y: 40, isToken: false });
+            else if(target === 'battlefieldBottom') battlefieldBottom.push({ name: cardName, tapped: false, isToken: false });
+            renderMyUI();
+            broadcastAction({ type: 'MOVE_FROM_GRAVE', fromZone, idx, target, cardName });
+        }
+    }
+    function closeMenu() { if(activeMenu) activeMenu.remove(); activeMenu = null; }
+    
+    function selectHandCard(idx) {
+        if(!hand[idx]) return;
+        selectedCardRef = { zone: 'hand', index: idx, cardName: hand[idx] };
+        const bar = document.getElementById('playerActionBar');
+        bar.style.display = 'flex';
+        document.getElementById('selectedCardInfo').innerText = `已选: ${hand[idx]}`;
+        const btnGroup = document.getElementById('actionButtonsGroup');
+        btnGroup.innerHTML = '';
+        const toTop = document.createElement('button'); toTop.textContent = '放到战场(上区)';
+        const toBottom = document.createElement('button'); toBottom.textContent = '放到战场(下区)';
+        const toDeckTop = document.createElement('button'); toDeckTop.textContent = '📌 放到牌库顶';
+        const toDeckBottom = document.createElement('button'); toDeckBottom.textContent = '📌 放到牌库底';
+        const toDeckCustom = document.createElement('button'); toDeckCustom.textContent = '📌 放到牌库第X张';
+        toTop.onclick = () => { playHandToZone('battlefieldTop'); clearSelected(); };
+        toBottom.onclick = () => { playHandToZone('battlefieldBottom'); clearSelected(); };
+        toDeckTop.onclick = () => { moveHandToDeck(selectedCardRef.index, 'top'); clearSelected(); };
+        toDeckBottom.onclick = () => { moveHandToDeck(selectedCardRef.index, 'bottom'); clearSelected(); };
+        toDeckCustom.onclick = () => { moveHandToDeck(selectedCardRef.index, 'custom'); clearSelected(); };
+        btnGroup.appendChild(toTop); btnGroup.appendChild(toBottom);
+        btnGroup.appendChild(toDeckTop); btnGroup.appendChild(toDeckBottom); btnGroup.appendChild(toDeckCustom);
+        const cancel = document.createElement('button'); cancel.textContent = '取消'; cancel.onclick = clearSelected;
+        btnGroup.appendChild(cancel);
+    }
+    function clearSelected() { selectedCardRef = null; document.getElementById('playerActionBar').style.display = 'none'; }
+    function playHandToZone(targetZone) {
+        if(!selectedCardRef || selectedCardRef.zone !== 'hand') return;
+        const cardName = hand[selectedCardRef.index];
+        if(!cardName) return;
+        hand.splice(selectedCardRef.index,1);
+        if(targetZone === 'battlefieldTop') battlefieldTop.push({ name: cardName, tapped: false, x: 40, y: 40, isToken: false });
+        else if(targetZone === 'battlefieldBottom') battlefieldBottom.push({ name: cardName, tapped: false, isToken: false });
+        else if(targetZone === 'commander') commander.push({ name: cardName, tapped: false });
+        renderMyUI();
+        broadcastAction({ type: 'PLAY_CARD', cardName, targetZone });
+    }
+    function moveHandToDeck(handIdx, position) {
+        const card = hand[handIdx];
+        if (!card) return;
+        hand.splice(handIdx, 1);
+        if (position === 'top') deck.unshift(card);
+        else if (position === 'bottom') deck.push(card);
+        else if (position === 'custom') {
+            let pos = prompt(`请输入位置（1~${deck.length+1}）：\n1=牌库顶，${deck.length+1}=牌库底`);
+            if (pos === null) { hand.splice(handIdx, 0, card); return; }
+            let index = parseInt(pos);
+            if (isNaN(index)) index = 1;
+            index = Math.min(Math.max(index, 1), deck.length + 1);
+            deck.splice(index - 1, 0, card);
+        }
+        renderMyUI();
+        broadcastAction({ type: 'MOVE_TO_DECK', cardName: card, position });
+    }
+    
+    function handleDropToZone(e, targetZone) {
+        const raw = e.dataTransfer.getData('text/plain'); if(!raw) return;
+        const data = JSON.parse(raw);
+        if(data.type === 'indicator') {
+            const rect = document.getElementById('myTopZone').getBoundingClientRect();
+            let newX = e.clientX - rect.left - 18, newY = e.clientY - rect.top - 18;
+            newX = Math.min(Math.max(newX, 0), rect.width - 36);
+            newY = Math.min(Math.max(newY, 0), rect.height - 36);
+            moveIndicator(data.id, newX, newY, data.isCommander || false);
+            return;
+        }
+        const { zone, idx, cardName, isToken, id } = data;
+        if(isToken) {
+            if(targetZone === 'battlefieldTop' || targetZone === 'battlefieldBottom') {
+                let tokenObj = null;
+                if(zone === 'battlefieldTop' && battlefieldTop[idx] && battlefieldTop[idx].id === id) {
+                    tokenObj = battlefieldTop[idx];
+                    battlefieldTop.splice(idx,1);
+                } else if(zone === 'battlefieldBottom' && battlefieldBottom[idx] && battlefieldBottom[idx].id === id) {
+                    tokenObj = battlefieldBottom[idx];
+                    battlefieldBottom.splice(idx,1);
+                }
+                if(tokenObj) {
+                    if(targetZone === 'battlefieldTop') {
+                        const rect = document.getElementById('myTopZone').getBoundingClientRect();
+                        let newX = e.clientX - rect.left - 35, newY = e.clientY - rect.top - 48;
+                        newX = Math.min(Math.max(newX, 0), rect.width - 70);
+                        newY = Math.min(Math.max(newY, 0), rect.height - 95);
+                        tokenObj.x = newX; tokenObj.y = newY;
+                        battlefieldTop.push(tokenObj);
+                    } else {
+                        delete tokenObj.x; delete tokenObj.y;
+                        battlefieldBottom.push(tokenObj);
+                    }
+                    renderMyUI();
+                    broadcastAction({ type: 'MOVE_TOKEN', tokenId: id, targetZone, x: tokenObj.x, y: tokenObj.y });
+                }
+            } else {
+                deleteTokenById(id);
+            }
+            return;
+        }
+        let sourceCard = null;
+        if(zone === 'hand' && hand[idx] === cardName) sourceCard = hand.splice(idx,1)[0];
+        else if(zone === 'battlefieldTop' && battlefieldTop[idx] && battlefieldTop[idx].name === cardName) { sourceCard = battlefieldTop[idx].name; battlefieldTop.splice(idx,1); }
+        else if(zone === 'battlefieldBottom' && battlefieldBottom[idx] && battlefieldBottom[idx].name === cardName) { sourceCard = battlefieldBottom[idx].name; battlefieldBottom.splice(idx,1); }
+        else if(zone === 'graveyard' && graveyard[idx] === cardName) sourceCard = graveyard.splice(idx,1)[0];
+        else if(zone === 'exile' && exile[idx] === cardName) sourceCard = exile.splice(idx,1)[0];
+        else if(zone === 'commander' && commander[idx] && commander[idx].name === cardName) { sourceCard = commander[idx].name; commander.splice(idx,1); }
+        if(sourceCard) {
+            if(targetZone === 'battlefieldTop') {
+                let rect = document.getElementById('myTopZone').getBoundingClientRect();
+                let newX = e.clientX - rect.left - 35, newY = e.clientY - rect.top - 48;
+                newX = Math.min(Math.max(newX, 0), rect.width - 70);
+                newY = Math.min(Math.max(newY, 0), rect.height - 95);
+                battlefieldTop.push({ name: sourceCard, tapped: false, x: newX, y: newY, isToken: false });
+                broadcastAction({ type: 'MOVE_TO_BATTLEFIELD', fromZone: zone, cardName: sourceCard, targetZone: 'top', x: newX, y: newY });
+            } else if(targetZone === 'battlefieldBottom') {
+                battlefieldBottom.push({ name: sourceCard, tapped: false, isToken: false });
+                broadcastAction({ type: 'MOVE_TO_BATTLEFIELD', fromZone: zone, cardName: sourceCard, targetZone: 'bottom' });
+            } else if(targetZone === 'graveyard') {
+                graveyard.push(sourceCard);
+                broadcastAction({ type: 'MOVE_TO_GRAVEYARD', fromZone: zone, cardName: sourceCard });
+            } else if(targetZone === 'exile') {
+                exile.push(sourceCard);
+                broadcastAction({ type: 'MOVE_TO_EXILE', fromZone: zone, cardName: sourceCard });
+            } else if(targetZone === 'commander') {
+                commander.push({ name: sourceCard, tapped: false });
+                broadcastAction({ type: 'MOVE_TO_COMMANDER', fromZone: zone, cardName: sourceCard });
+            }
+            renderMyUI();
+            preloadAllCardImages();
+        }
+        if(zone === 'battlefieldTop' && targetZone === 'battlefieldTop' && battlefieldTop[idx] && !isTokenCard(battlefieldTop[idx])) {
+            const rect = document.getElementById('myTopZone').getBoundingClientRect();
+            let newX = e.clientX - rect.left - 35, newY = e.clientY - rect.top - 48;
+            newX = Math.min(Math.max(newX, 0), rect.width - 70);
+            newY = Math.min(Math.max(newY, 0), rect.height - 95);
+            battlefieldTop[idx].x = newX; battlefieldTop[idx].y = newY;
+            renderMyUI();
+            broadcastAction({ type: 'MOVE_TOP', idx, x: newX, y: newY });
+        }
+    }
+    
+    // 生命值调整
+    function adjustMyLife(delta) { let newLife = myLife + delta; if(newLife<0) newLife=0; myLife=newLife; document.getElementById('myLifeValue').innerText = myLife; broadcastAction({ type: 'LIFE_CHANGE', life: myLife, type: 'normal' }); }
+    function adjustMyCommanderLife(delta) { let newLife = myCommanderLife + delta; if(newLife<0) newLife=0; myCommanderLife=newLife; document.getElementById('myCommanderLifeValue').innerText = myCommanderLife; broadcastAction({ type: 'LIFE_CHANGE', life: myCommanderLife, type: 'commander' }); }
+    
+    function drawCard() { if(deck.length===0) { alert("牌库已空"); return; } hand.push(deck.shift()); renderMyUI(); broadcastAction({ type: 'DRAW', cardName: hand[hand.length-1] }); preloadAllCardImages(); }
+    function shuffleDeck() { shuffleArray(deck); renderMyUI(); broadcastAction({ type: 'SHUFFLE' }); }
+    function scry() { if(deck.length === 0) { alert("牌库已空"); return; } const topCard = deck[0]; const choice = confirm(`占卜：牌库顶是「${topCard}」\n\n按「确定」保留到牌库顶，按「取消」置于牌库底。`); if(!choice) { deck.shift(); deck.push(topCard); } renderMyUI(); broadcastAction({ type: 'SCRY', kept: choice }); }
+    function surveil() { if(deck.length === 0) { alert("牌库已空"); return; } const topCard = deck[0]; const choice = confirm(`刺探：牌库顶是「${topCard}」\n\n按「确定」保留到牌库顶，按「取消」置入坟墓场。`); if(!choice) { deck.shift(); graveyard.push(topCard); } renderMyUI(); broadcastAction({ type: 'SURVEIL', kept: choice }); preloadAllCardImages(); }
+    
+    // 卡组导入
+    function parseDeckFull(text) {
+        const lines = text.split(/\r?\n/);
+        let mainLines = [], commanderLines = [];
+        let foundEmpty = false;
+        for(let line of lines){
+            let trimmed = line.trim();
+            if(!foundEmpty && trimmed === ''){
+                foundEmpty = true;
+                continue;
+            }
+            if(!foundEmpty){
+                if(trimmed !== '') mainLines.push(line);
+            } else {
+                if(trimmed !== '') commanderLines.push(line);
+            }
+        }
+        const parse = (arr) => {
+            const res = [];
+            for(let ln of arr){
+                ln = ln.trim();
+                if(!ln) continue;
+                const parts = ln.split(' ');
+                const cnt = parseInt(parts[0]);
+                if(isNaN(cnt) || cnt <= 0) continue;
+                const name = parts.slice(1).join(' ').trim();
+                if(name) for(let i=0;i<cnt;i++) res.push(name);
+            }
+            return res;
+        };
+        return { mainboard: parse(mainLines), commander: parse(commanderLines) };
+    }
+    
+    function formatDeckToText(mainArr, commanderArr) {
+        const countMap = (arr) => {
+            const map = new Map();
+            for(let name of arr) map.set(name, (map.get(name)||0)+1);
+            return map;
+        };
+        const mainMap = countMap(mainArr);
+        const commanderMap = countMap(commanderArr);
+        const lines = [];
+        for(let [name,cnt] of mainMap.entries()) lines.push(`${cnt} ${name}`);
+        if(commanderArr.length > 0){
+            lines.push('');
+            for(let [name,cnt] of commanderMap.entries()) lines.push(`${cnt} ${name}`);
+        }
+        return lines.join('\n');
+    }
+    
+    function resetGameFromMainboard(mainboard, commanderCards) {
+        let fullDeck = shuffleArray([...mainboard]);
+        hand = fullDeck.slice(0,7);
+        deck = fullDeck.slice(7);
+        graveyard = []; exile = []; battlefieldTop = []; battlefieldBottom = []; indicators = []; commanderIndicators = [];
+        commander = commanderCards.map(name => ({ name, tapped: false }));
+        mulliganCount = 0;
+        gamePhase = 'initial';
+        selectedIndices = [];
+        myLife = 40;
+        myCommanderLife = 20;
+        document.getElementById('myLifeValue').innerText = myLife;
+        document.getElementById('myCommanderLifeValue').innerText = myCommanderLife;
+        updateUIPhase();
+        renderMyUI();
+        broadcastAction({ type: 'FULL_STATE', deckCount: deck.length, handSize: hand.length, mulliganCount, 
+            battlefieldTop: battlefieldTop.map(c=>({name:c.name, tapped:c.tapped, x:c.x, y:c.y, isToken:c.isToken, id:c.id})), 
+            battlefieldBottom: battlefieldBottom.map(c=>({name:c.name, tapped:c.tapped, isToken:c.isToken, id:c.id})), 
+            graveyard: [...graveyard], exile: [...exile], indicators: indicators.map(i=>({...i})),
+            commander: commander.map(c=>({name:c.name})), commanderIndicators: commanderIndicators.map(i=>({...i})),
+            life: myLife, commanderLife: myCommanderLife });
+        preloadAllCardImages();
+    }
+    
+    // 调度逻辑
+    function performMulligan() {
+        if(mulliganCount >= 8) {
+            alert("已达到最大调度次数（8次），不能再调度。");
+            return;
+        }
+        // 洗牌，重新抓7张
+        let combined = [...hand, ...deck];
+        combined.push(...battlefieldTop.map(o=>o.name), ...battlefieldBottom.map(o=>o.name), ...graveyard, ...exile);
+        shuffleArray(combined);
+        hand = combined.slice(0,7);
+        deck = combined.slice(7);
+        battlefieldTop = []; battlefieldBottom = []; graveyard = []; exile = []; indicators = []; commanderIndicators = [];
+        mulliganCount++;
+        gamePhase = 'mulligan';
+        selectedIndices = [];
+        updateUIPhase();
+        renderMyUI();
+        broadcastAction({ type: 'MULLIGAN_STATE', mulliganCount, handSize: hand.length, deckCount: deck.length });
+    }
+    
+    function acceptMulligan() {
+        // 根据当前调度次数决定是否需要放回牌
+        targetX = mulliganCount - 1;  // 第n次调度放回n-1张
+        if(targetX === 0) {
+            // 第一次调度，直接开始游戏
+            gamePhase = 'playing';
+            mulliganCount = 0;
+            updateUIPhase();
+            renderMyUI();
+            broadcastAction({ type: 'GAME_PHASE', phase: 'playing' });
+        } else {
+            // 需要选择放回牌
+            gamePhase = 'selecting';
+            selectedIndices = [];
+            updateUIPhase();
+            renderMyUI();
+        }
+    }
+    
+    function continueMulligan() {
+        // 继续调度（重新洗牌抓7张）
+        performMulligan();
+    }
+    
+    function confirmReturn() {
+        if(selectedIndices.length !== targetX) {
+            alert(`请选择${targetX}张牌放回牌库底`);
+            return;
+        }
+        const selectedCards = selectedIndices.map(i => hand[i]);
+        hand = hand.filter((_,i)=>!selectedIndices.includes(i));
+        deck.push(...selectedCards);
+        mulliganCount = 0;
+        gamePhase = 'playing';
+        selectedIndices = [];
+        updateUIPhase();
+        renderMyUI();
+        broadcastAction({ type: 'FULL_STATE', deckCount: deck.length, handSize: hand.length, mulliganCount, 
+            battlefieldTop: battlefieldTop.map(c=>({name:c.name, tapped:c.tapped, x:c.x, y:c.y, isToken:c.isToken, id:c.id})), 
+            battlefieldBottom: battlefieldBottom.map(c=>({name:c.name, tapped:c.tapped, isToken:c.isToken, id:c.id})), 
+            graveyard: [...graveyard], exile: [...exile], indicators: indicators.map(i=>({...i})),
+            commander: commander.map(c=>({name:c.name})), commanderIndicators: commanderIndicators.map(i=>({...i})),
+            life: myLife, commanderLife: myCommanderLife });
+    }
+    
+    function cancelSelect() {
+        // 取消放回，回到调度阶段
+        gamePhase = 'mulligan';
+        updateUIPhase();
+        renderMyUI();
+    }
+    
+    function handleSelectingCardClick(idx) { 
+        if(gamePhase !== 'selecting') return; 
+        if(selectedIndices.includes(idx)) selectedIndices = selectedIndices.filter(i=>i!==idx); 
+        else { 
+            if(selectedIndices.length < targetX) selectedIndices.push(idx); 
+            else alert(`最多选择${targetX}张放回`); 
+        } 
+        updateUIPhase(); 
+        renderMyUI(); 
+    }
+    
+    function acceptInitial() { 
+        // 初始接受手牌（不调度直接开始）
+        gamePhase = 'playing';
+        updateUIPhase();
+        renderMyUI();
+        broadcastAction({ type: 'GAME_PHASE', phase: 'playing' });
+    }
+    
+    function updateUIPhase() {
+        document.getElementById('initialButtons').style.display = gamePhase === 'initial' ? 'flex' : 'none';
+        document.getElementById('mulliganButtons').style.display = gamePhase === 'mulligan' ? 'flex' : 'none';
+        document.getElementById('selectButtons').style.display = gamePhase === 'selecting' ? 'flex' : 'none';
+        document.getElementById('playButtons').style.display = gamePhase === 'playing' ? 'flex' : 'none';
+        if(gamePhase === 'selecting'){ 
+            document.getElementById('targetX').innerText = targetX; 
+            document.getElementById('selectedCount').innerText = selectedIndices.length; 
+            document.getElementById('confirmReturnBtn').disabled = (selectedIndices.length !== targetX);
+        }
+    }
+    
+    // ========== P2P 多人连接 ==========
+    let peer = null;
+    let myPeerId = "";
+    let connections = [null, null, null];
+    let autoRefreshInterval = null;
+    
+    function broadcastAction(action) {
+        for(let i=0;i<3;i++) {
+            if(connections[i] && connections[i].open) connections[i].send(JSON.stringify(action));
+        }
+    }
+    
+    function sendFullStateTo(conn) {
+        if(!conn || !conn.open) return;
+        conn.send(JSON.stringify({
+            type: 'FULL_STATE',
+            deckCount: deck.length,
+            handSize: hand.length,
+            mulliganCount,
+            battlefieldTop: battlefieldTop.map(c=>({name:c.name, tapped:c.tapped, x:c.x, y:c.y, isToken:c.isToken, id:c.id})),
+            battlefieldBottom: battlefieldBottom.map(c=>({name:c.name, tapped:c.tapped, isToken:c.isToken, id:c.id})),
+            graveyard: [...graveyard],
+            exile: [...exile],
+            indicators: indicators.map(i=>({...i})),
+            commander: commander.map(c=>({name:c.name})),
+            commanderIndicators: commanderIndicators.map(i=>({...i})),
+            life: myLife,
+            commanderLife: myCommanderLife
+        }));
+    }
+    
+    function handlePeerMessage(data, senderConn) {
+        try {
+            const msg = JSON.parse(data);
+            let oppIdx = connections.findIndex(conn => conn === senderConn);
+            if(oppIdx === -1) return;
+            
+            if(msg.type === 'FULL_STATE') {
+                opponentStates[oppIdx] = {
+                    deckCount: msg.deckCount,
+                    handSize: msg.handSize,
+                    mulliganCount: msg.mulliganCount,
+                    battlefieldTop: msg.battlefieldTop || [],
+                    battlefieldBottom: msg.battlefieldBottom || [],
+                    graveyard: msg.graveyard || [],
+                    exile: msg.exile || [],
+                    indicators: msg.indicators || [],
+                    commander: msg.commander || [],
+                    commanderIndicators: msg.commanderIndicators || [],
+                    life: msg.life !== undefined ? msg.life : 40,
+                    commanderLife: msg.commanderLife !== undefined ? msg.commanderLife : 20,
+                    revealedHand: opponentStates[oppIdx]?.revealedHand || []
+                };
+                renderOpponentUI(oppIdx);
+                preloadAllCardImages();
+            } else if(msg.type === 'REQUEST_FULL_STATE') {
+                sendFullStateTo(senderConn);
+            } else if(msg.type === 'ADD_TOKEN') {
+                if(msg.token && msg.token.name) {
+                    if(!cardImageMap.has(msg.token.name)) fetchCardImage(msg.token.name);
+                    opponentStates[oppIdx].battlefieldTop.push(msg.token);
+                    renderOpponentUI(oppIdx);
+                    preloadAllCardImages();
+                }
+            } else if(msg.type === 'DELETE_TOKEN') {
+                const tokenId = msg.tokenId;
+                const topIdx = opponentStates[oppIdx].battlefieldTop.findIndex(c => c.id === tokenId);
+                if(topIdx !== -1) opponentStates[oppIdx].battlefieldTop.splice(topIdx,1);
+                const botIdx = opponentStates[oppIdx].battlefieldBottom.findIndex(c => c.id === tokenId);
+                if(botIdx !== -1) opponentStates[oppIdx].battlefieldBottom.splice(botIdx,1);
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MOVE_TOKEN') {
+                const tokenId = msg.tokenId;
+                let tokenObj = null;
+                const topIdx = opponentStates[oppIdx].battlefieldTop.findIndex(c => c.id === tokenId);
+                if(topIdx !== -1) tokenObj = opponentStates[oppIdx].battlefieldTop[topIdx];
+                const botIdx = opponentStates[oppIdx].battlefieldBottom.findIndex(c => c.id === tokenId);
+                if(botIdx !== -1) tokenObj = opponentStates[oppIdx].battlefieldBottom[botIdx];
+                if(tokenObj) {
+                    if(topIdx !== -1) opponentStates[oppIdx].battlefieldTop.splice(topIdx,1);
+                    if(botIdx !== -1) opponentStates[oppIdx].battlefieldBottom.splice(botIdx,1);
+                    if(msg.targetZone === 'battlefieldTop') {
+                        tokenObj.x = msg.x; tokenObj.y = msg.y;
+                        opponentStates[oppIdx].battlefieldTop.push(tokenObj);
+                    } else {
+                        delete tokenObj.x; delete tokenObj.y;
+                        opponentStates[oppIdx].battlefieldBottom.push(tokenObj);
+                    }
+                    renderOpponentUI(oppIdx);
+                }
+            } else if(msg.type === 'ADD_INDICATOR') {
+                if(!opponentStates[oppIdx].indicators) opponentStates[oppIdx].indicators = [];
+                opponentStates[oppIdx].indicators.push(msg.indicator);
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'ADD_COMMANDER_INDICATOR') {
+                if(!opponentStates[oppIdx].commanderIndicators) opponentStates[oppIdx].commanderIndicators = [];
+                opponentStates[oppIdx].commanderIndicators.push(msg.indicator);
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'UPDATE_INDICATOR') {
+                const ind = opponentStates[oppIdx].indicators.find(i => i.id === msg.id);
+                if(ind) { ind.value = msg.value; renderOpponentUI(oppIdx); }
+            } else if(msg.type === 'UPDATE_COMMANDER_INDICATOR') {
+                const ind = opponentStates[oppIdx].commanderIndicators.find(i => i.id === msg.id);
+                if(ind) { ind.value = msg.value; renderOpponentUI(oppIdx); }
+            } else if(msg.type === 'DELETE_INDICATOR') {
+                const idx = opponentStates[oppIdx].indicators.findIndex(i => i.id === msg.id);
+                if(idx !== -1) { opponentStates[oppIdx].indicators.splice(idx,1); renderOpponentUI(oppIdx); }
+            } else if(msg.type === 'DELETE_COMMANDER_INDICATOR') {
+                const idx = opponentStates[oppIdx].commanderIndicators.findIndex(i => i.id === msg.id);
+                if(idx !== -1) { opponentStates[oppIdx].commanderIndicators.splice(idx,1); renderOpponentUI(oppIdx); }
+            } else if(msg.type === 'MOVE_INDICATOR') {
+                const ind = opponentStates[oppIdx].indicators.find(i => i.id === msg.id);
+                if(ind) { ind.x = msg.x; ind.y = msg.y; renderOpponentUI(oppIdx); }
+            } else if(msg.type === 'MOVE_COMMANDER_INDICATOR') {
+                const ind = opponentStates[oppIdx].commanderIndicators.find(i => i.id === msg.id);
+                if(ind) { ind.x = msg.x; ind.y = msg.y; renderOpponentUI(oppIdx); }
+            } else if(msg.type === 'DICE_RESULT') {
+                receiveDiceResult(oppIdx, msg.result);
+            } else if(msg.type === 'REQUEST_TOP_DECK') {
+                handleTopDeckRequest(senderConn);
+            } else if(msg.type === 'TOP_DECK_RESPONSE') {
+                receiveTopDeckResponse(oppIdx, msg.cardName);
+            } else if(msg.type === 'RESET_ALL_TAPPED') {
+                for(let card of opponentStates[oppIdx].battlefieldTop) if(card.tapped) card.tapped = false;
+                for(let card of opponentStates[oppIdx].battlefieldBottom) if(card.tapped) card.tapped = false;
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'PLAY_CARD') {
+                const idx = opponentStates[oppIdx].revealedHand.indexOf(msg.cardName);
+                if(idx !== -1) opponentStates[oppIdx].revealedHand.splice(idx, 1);
+                if(msg.targetZone === 'battlefieldTop') opponentStates[oppIdx].battlefieldTop.push({ name: msg.cardName, tapped: false, x: 40, y: 40, isToken: false });
+                else if(msg.targetZone === 'battlefieldBottom') opponentStates[oppIdx].battlefieldBottom.push({ name: msg.cardName, tapped: false, isToken: false });
+                else if(msg.targetZone === 'commander') opponentStates[oppIdx].commander.push({ name: msg.cardName, tapped: false });
+                opponentStates[oppIdx].handSize = Math.max(0, opponentStates[oppIdx].handSize-1);
+                renderOpponentUI(oppIdx);
+                preloadAllCardImages();
+            } else if(msg.type === 'MOVE_TO_DECK') {
+                const idx = opponentStates[oppIdx].revealedHand.indexOf(msg.cardName);
+                if(idx !== -1) opponentStates[oppIdx].revealedHand.splice(idx, 1);
+                opponentStates[oppIdx].handSize = Math.max(0, opponentStates[oppIdx].handSize-1);
+                opponentStates[oppIdx].deckCount++;
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'RETURN_TO_HAND') {
+                let target = msg.zone === 'battlefieldTop' ? opponentStates[oppIdx].battlefieldTop : opponentStates[oppIdx].battlefieldBottom;
+                if(target[msg.idx] && !target[msg.idx].isToken) { target.splice(msg.idx,1); opponentStates[oppIdx].handSize++; }
+                else if(target[msg.idx] && target[msg.idx].isToken) { target.splice(msg.idx,1); }
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'TAP_TOGGLE') {
+                let target = msg.zone === 'battlefieldTop' ? opponentStates[oppIdx].battlefieldTop : opponentStates[oppIdx].battlefieldBottom;
+                if(target[msg.idx]) target[msg.idx].tapped = msg.tapped;
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MOVE_FROM_GRAVE') {
+                let arr = msg.fromZone === 'graveyard' ? opponentStates[oppIdx].graveyard : opponentStates[oppIdx].exile;
+                if(arr[msg.idx]) { let card = arr[msg.idx]; arr.splice(msg.idx,1);
+                    if(msg.target === 'hand') opponentStates[oppIdx].handSize++;
+                    else if(msg.target === 'battlefieldTop') opponentStates[oppIdx].battlefieldTop.push({ name: card, tapped: false, x: 40, y: 40, isToken: false });
+                    else if(msg.target === 'battlefieldBottom') opponentStates[oppIdx].battlefieldBottom.push({ name: card, tapped: false, isToken: false });
+                } renderOpponentUI(oppIdx); preloadAllCardImages();
+            } else if(msg.type === 'MOVE_TOP') {
+                if(opponentStates[oppIdx].battlefieldTop[msg.idx]) {
+                    opponentStates[oppIdx].battlefieldTop[msg.idx].x = msg.x;
+                    opponentStates[oppIdx].battlefieldTop[msg.idx].y = msg.y;
+                    renderOpponentUI(oppIdx);
+                }
+            } else if(msg.type === 'DRAW') {
+                opponentStates[oppIdx].handSize++;
+                opponentStates[oppIdx].deckCount = Math.max(0, opponentStates[oppIdx].deckCount-1);
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'SHUFFLE') {
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'REQUEST_HAND_REVEAL') {
+                handleHandRevealRequest(senderConn);
+            } else if(msg.type === 'HAND_REVEAL_RESPONSE') {
+                if(msg.hand) receiveHandReveal(oppIdx, msg.hand);
+                else alert(`对手${oppIdx+1}拒绝了手牌展示请求`);
+            } else if(msg.type === 'LIFE_CHANGE') {
+                if(msg.type === 'normal') opponentStates[oppIdx].life = msg.life;
+                else opponentStates[oppIdx].commanderLife = msg.life;
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'GAME_PHASE') {
+                // 忽略
+            } else if(msg.type === 'MOVE_COMMANDER_TO_HAND') {
+                const idx = opponentStates[oppIdx].commander.findIndex(c => c.name === msg.cardName);
+                if(idx !== -1) { opponentStates[oppIdx].commander.splice(idx,1); opponentStates[oppIdx].handSize++; }
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MOVE_COMMANDER_TO_BATTLEFIELD') {
+                const idx = opponentStates[oppIdx].commander.findIndex(c => c.name === msg.cardName);
+                if(idx !== -1) {
+                    opponentStates[oppIdx].commander.splice(idx,1);
+                    if(msg.target === 'top') opponentStates[oppIdx].battlefieldTop.push({ name: msg.cardName, tapped: false, x: 40, y: 40, isToken: false });
+                    else opponentStates[oppIdx].battlefieldBottom.push({ name: msg.cardName, tapped: false, isToken: false });
+                }
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MOVE_TO_BATTLEFIELD') {
+                if(msg.fromZone === 'hand') opponentStates[oppIdx].handSize = Math.max(0, opponentStates[oppIdx].handSize-1);
+                else if(msg.fromZone === 'graveyard') {
+                    const idx = opponentStates[oppIdx].graveyard.findIndex(c => c === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].graveyard.splice(idx,1);
+                } else if(msg.fromZone === 'exile') {
+                    const idx = opponentStates[oppIdx].exile.findIndex(c => c === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].exile.splice(idx,1);
+                } else if(msg.fromZone === 'commander') {
+                    const idx = opponentStates[oppIdx].commander.findIndex(c => c.name === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].commander.splice(idx,1);
+                }
+                if(msg.targetZone === 'top') opponentStates[oppIdx].battlefieldTop.push({ name: msg.cardName, tapped: false, x: msg.x || 40, y: msg.y || 40, isToken: false });
+                else opponentStates[oppIdx].battlefieldBottom.push({ name: msg.cardName, tapped: false, isToken: false });
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MOVE_TO_GRAVEYARD') {
+                if(msg.fromZone === 'hand') opponentStates[oppIdx].handSize = Math.max(0, opponentStates[oppIdx].handSize-1);
+                else if(msg.fromZone === 'battlefieldTop') {
+                    const idx = opponentStates[oppIdx].battlefieldTop.findIndex(c => c.name === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].battlefieldTop.splice(idx,1);
+                } else if(msg.fromZone === 'battlefieldBottom') {
+                    const idx = opponentStates[oppIdx].battlefieldBottom.findIndex(c => c.name === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].battlefieldBottom.splice(idx,1);
+                }
+                opponentStates[oppIdx].graveyard.push(msg.cardName);
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MOVE_TO_EXILE') {
+                if(msg.fromZone === 'hand') opponentStates[oppIdx].handSize = Math.max(0, opponentStates[oppIdx].handSize-1);
+                else if(msg.fromZone === 'battlefieldTop') {
+                    const idx = opponentStates[oppIdx].battlefieldTop.findIndex(c => c.name === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].battlefieldTop.splice(idx,1);
+                } else if(msg.fromZone === 'battlefieldBottom') {
+                    const idx = opponentStates[oppIdx].battlefieldBottom.findIndex(c => c.name === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].battlefieldBottom.splice(idx,1);
+                }
+                opponentStates[oppIdx].exile.push(msg.cardName);
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MOVE_TO_COMMANDER') {
+                if(msg.fromZone === 'hand') opponentStates[oppIdx].handSize = Math.max(0, opponentStates[oppIdx].handSize-1);
+                else if(msg.fromZone === 'battlefieldTop') {
+                    const idx = opponentStates[oppIdx].battlefieldTop.findIndex(c => c.name === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].battlefieldTop.splice(idx,1);
+                } else if(msg.fromZone === 'battlefieldBottom') {
+                    const idx = opponentStates[oppIdx].battlefieldBottom.findIndex(c => c.name === msg.cardName);
+                    if(idx !== -1) opponentStates[oppIdx].battlefieldBottom.splice(idx,1);
+                }
+                opponentStates[oppIdx].commander.push({ name: msg.cardName, tapped: false });
+                renderOpponentUI(oppIdx);
+            } else if(msg.type === 'MULLIGAN_STATE') {
+                opponentStates[oppIdx].mulliganCount = msg.mulliganCount;
+                opponentStates[oppIdx].handSize = msg.handSize;
+                opponentStates[oppIdx].deckCount = msg.deckCount;
+                renderOpponentUI(oppIdx);
+            }
+        } catch(e) { console.warn(e); }
+    }
+    
+    function setupConnection(conn, oppIdx) {
+        connections[oppIdx] = conn;
+        conn.on('open', () => {
+            document.getElementById(`opp${oppIdx}Status`).innerHTML = '✅ 已连接';
+            sendFullStateTo(conn);
+        });
+        conn.on('data', (data) => handlePeerMessage(data, conn));
+        conn.on('close', () => {
+            connections[oppIdx] = null;
+            document.getElementById(`opp${oppIdx}Status`).innerHTML = '❌ 断开';
+            opponentStates[oppIdx] = { deckCount:0, handSize:0, mulliganCount:0, battlefieldTop:[], battlefieldBottom:[], graveyard:[], exile:[], commander:[], commanderIndicators:[], indicators:[], life:40, commanderLife:20, revealedHand:[] };
+            renderOpponentUI(oppIdx);
+        });
+    }
+    
+    function initPeerAuto() {
+        if(peer) peer.destroy();
+        peer = new Peer();
+        peer.on('open', (id)=>{ myPeerId = id; document.getElementById('connectionStatus').innerHTML = `🟢 我的ID: ${id}`; });
+        peer.on('connection', (conn) => {
+            let idx = connections.findIndex(c => c === null);
+            if(idx === -1) { alert("已有三个对手，无法再连接"); conn.close(); return; }
+            setupConnection(conn, idx);
+        });
+    }
+    
+    function connectToPeer(remoteId) {
+        if(!peer) { alert("Peer未初始化，请稍等"); return; }
+        let idx = connections.findIndex(c => c === null);
+        if(idx === -1) { alert("已连接满三个对手"); return; }
+        const conn = peer.connect(remoteId);
+        setupConnection(conn, idx);
+    }
+    
+    function disconnectAll() {
+        for(let i=0;i<3;i++) {
+            if(connections[i]) { connections[i].close(); connections[i] = null; }
+            document.getElementById(`opp${i}Status`).innerHTML = '未连接';
+            opponentStates[i] = { deckCount:0, handSize:0, mulliganCount:0, battlefieldTop:[], battlefieldBottom:[], graveyard:[], exile:[], commander:[], commanderIndicators:[], indicators:[], life:40, commanderLife:20, revealedHand:[] };
+            renderOpponentUI(i);
+        }
+    }
+    
+    function refreshAllOpponents() {
+        for(let i=0;i<3;i++) {
+            if(connections[i] && connections[i].open) connections[i].send(JSON.stringify({ type: 'REQUEST_FULL_STATE' }));
+        }
+    }
+    
+    function startAutoRefresh() {
+        if(autoRefreshInterval) clearInterval(autoRefreshInterval);
+        autoRefreshInterval = setInterval(() => { refreshAllOpponents(); }, 1000);
+    }
+    function stopAutoRefresh() { if(autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; } }
+    
+    // 卡组管理
+    function saveDeckWithRefresh() { 
+        let name = prompt("卡组名称"); 
+        if(!name) return; 
+        let text = formatDeckToText(mainboardList, commanderList); 
+        localStorage.setItem('mtg_deck_'+name, text); 
+        alert(`已保存卡组 "${name}"`); 
+        populateDeckSelect(); 
+        preloadAllCardImages(); 
+    }
+    function populateDeckSelect() { 
+        const select = document.getElementById('savedDeckSelect'); 
+        if(!select) return; 
+        select.innerHTML = '<option value="">-- 选择已保存卡组 --</option>'; 
+        for(let i=0; i<localStorage.length; i++){ 
+            const key = localStorage.key(i); 
+            if(key && key.startsWith('mtg_deck_')){ 
+                const deckName = key.substring(9); 
+                const option = document.createElement('option'); 
+                option.value = deckName; 
+                option.textContent = deckName; 
+                select.appendChild(option); 
+            } 
+        } 
+    }
+    function loadSelectedDeck() { 
+        const select = document.getElementById('savedDeckSelect'); 
+        const deckName = select.value; 
+        if(!deckName) return; 
+        const data = localStorage.getItem('mtg_deck_'+deckName); 
+        if(!data){ alert("未找到该卡组"); return; } 
+        document.getElementById('deckInput').value = data; 
+        let {mainboard, commander} = parseDeckFull(data); 
+        if(mainboard.length){ 
+            mainboardList = mainboard; 
+            commanderList = commander; 
+            resetGameFromMainboard(mainboardList, commanderList); 
+        } else alert("主牌不能为空"); 
+        preloadAllCardImages(); 
+    }
+    
+    // 搜索
+    let selectedSearchName = '';
+    function openSearchModal() { document.getElementById('searchModal').style.display='flex'; }
+    
+    // 悬浮大图
+    const tooltipDiv = document.getElementById('card-tooltip');
+    const tooltipImg = tooltipDiv.querySelector('img');
+    let tooltipTimer = null, currentCard = '';
+    function showTooltip(cardName,e){ if(!cardName) return; if(tooltipTimer) clearTimeout(tooltipTimer); currentCard=cardName; const cached=cardImageMap.get(cardName); if(cached) tooltipImg.src=cached; else if(cached===null) tooltipImg.src=PLACEHOLDER; else{ tooltipImg.src=PLACEHOLDER; fetchCardImage(cardName).then(url=>{ if(currentCard===cardName && tooltipDiv.style.display==='block') tooltipImg.src=url||PLACEHOLDER; }); } tooltipDiv.style.display='block'; tooltipDiv.style.left=(e.clientX+20)+'px'; tooltipDiv.style.top=(e.clientY+20)+'px'; }
+    function moveTooltip(e){ if(tooltipDiv.style.display==='block'){ tooltipDiv.style.left=(e.clientX+20)+'px'; tooltipDiv.style.top=(e.clientY+20)+'px'; } }
+    function hideTooltip(){ tooltipTimer=setTimeout(()=>{ tooltipDiv.style.display='none'; currentCard=''; },50); }
+    function cancelHide(){ if(tooltipTimer){ clearTimeout(tooltipTimer); tooltipTimer=null; } }
+    document.addEventListener('mouseover',(e)=>{ const target=e.target.closest('[data-cardname]'); if(target && target.dataset.cardname && target.dataset.cardname!=='——'){ cancelHide(); showTooltip(target.dataset.cardname,e); } else hideTooltip(); });
+    document.addEventListener('mousemove',moveTooltip);
+    document.addEventListener('mouseout',(e)=>{ if(!e.target.closest('[data-cardname]')) hideTooltip(); });
+    
+    // 绑定UI事件
+    document.getElementById('myDrawBtn').onclick=()=>{ if(gamePhase==='playing') drawCard(); else alert("请先接受手牌开始游戏"); };
+    document.getElementById('myShuffleBtn').onclick=()=>{ if(gamePhase==='playing') shuffleDeck(); else alert("请先开始游戏"); };
+    document.getElementById('scryBtn').onclick=()=>{ if(gamePhase==='playing') scry(); else alert("请先开始游戏"); };
+    document.getElementById('surveilBtn').onclick=()=>{ if(gamePhase==='playing') surveil(); else alert("请先开始游戏"); };
+    document.getElementById('viewTopCardsBtn').onclick=viewTopCards;
+    document.getElementById('resetGameBtn').onclick=()=>{ resetGameFromMainboard(mainboardList, commanderList); };
+    document.getElementById('resetTapBtn').onclick=resetAllTapped;
+    document.getElementById('createHostBtn').onclick=initPeerAuto;
+    document.getElementById('connectBtn').onclick=()=>{ let rid=document.getElementById('remotePeerIdInput').value.trim(); if(rid) connectToPeer(rid); };
+    document.getElementById('disconnectBtn').onclick=disconnectAll;
+    document.getElementById('copyIdBtn').onclick=()=>{ if(myPeerId){ navigator.clipboard.writeText(myPeerId); alert("已复制ID: "+myPeerId); } else alert("尚未生成ID"); };
+    document.getElementById('refreshAllBtn').onclick=refreshAllOpponents;
+    document.getElementById('toggleDeckManagerBtn').onclick=()=>{ let panel=document.getElementById('deckManagerPanel'); panel.style.display=panel.style.display==='block'?'none':'block'; populateDeckSelect(); };
+    document.getElementById('acceptInitialBtn').onclick=acceptInitial;
+    document.getElementById('mulliganBtn').onclick=performMulligan;
+    document.getElementById('acceptMulliganBtn').onclick=acceptMulligan;
+    document.getElementById('continueMulliganBtn').onclick=continueMulligan;
+    document.getElementById('continueSelectMulliganBtn').onclick=continueMulligan;
+    document.getElementById('confirmReturnBtn').onclick=confirmReturn;
+    document.getElementById('cancelSelectBtn').onclick=cancelSelect;
+    document.getElementById('myLifeMinus').onclick=()=>adjustMyLife(-1);
+    document.getElementById('myLifePlus').onclick=()=>adjustMyLife(1);
+    document.getElementById('myCommanderLifeMinus').onclick=()=>adjustMyCommanderLife(-1);
+    document.getElementById('myCommanderLifePlus').onclick=()=>adjustMyCommanderLife(1);
+    document.getElementById('addTokenBtn').onclick=()=>{ let tokenName=prompt("输入Token名称 (例如: Goblin, Treasure, 1/1 White Soldier)","Goblin"); if(tokenName && tokenName.trim()) addTokenToGame(tokenName.trim()); };
+    document.getElementById('addIndicatorBtn').onclick=showIndicatorAddMenu;
+    document.getElementById('rollDiceBtn').onclick=rollDice;
+    
+    document.getElementById('loadDeckBtn').onclick=()=>{ let txt=document.getElementById('deckInput').value; let {mainboard, commander}=parseDeckFull(txt); if(!mainboard.length){ alert("主牌不能为空"); return; } mainboardList=mainboard; commanderList=commander; resetGameFromMainboard(mainboardList, commanderList); };
+    document.getElementById('defaultDeckBtn').onclick=()=>{ let def = getDefaultDecklist(); mainboardList=def.mainboard; commanderList=def.commander; resetGameFromMainboard(mainboardList, commanderList); document.getElementById('deckInput').value=formatDeckToText(mainboardList, commanderList); };
+    document.getElementById('saveDeckBtn').onclick=saveDeckWithRefresh;
+    document.getElementById('loadSelectedDeckBtn').onclick=loadSelectedDeck;
+    
+    document.getElementById('openSearchModalBtn').onclick=openSearchModal;
+    document.getElementById('closeSearchModalBtn').onclick=()=>{ document.getElementById('searchModal').style.display='none'; };
+    document.getElementById('modalSearchBtn').onclick=()=>{ let kw=document.getElementById('modalSearchInput').value; let matches=[...new Set(deck.filter(c=>c.toLowerCase().includes(kw.toLowerCase())))]; let div=document.getElementById('modalSearchResults'); div.innerHTML=''; matches.forEach(n=>{ let btn=document.createElement('div'); btn.className='search-card'; btn.innerText=n; btn.onclick=()=>{ selectedSearchName=n; document.getElementById('modalSelectedCardName').innerText=n; document.getElementById('modalSearchActions').style.display='flex'; }; div.appendChild(btn); }); };
+    document.querySelectorAll('#modalSearchActions .action-btn').forEach(btn=>{ btn.addEventListener('click',()=>{ let target=btn.getAttribute('data-target'); if(selectedSearchName){ let idx=deck.findIndex(c=>c===selectedSearchName); if(idx!==-1){ let card=deck.splice(idx,1)[0]; if(target==='battlefieldTop') battlefieldTop.push({name:card, tapped:false, x:40, y:40}); else if(target==='battlefieldBottom') battlefieldBottom.push({name:card, tapped:false}); else if(target==='hand') hand.push(card); else if(target==='graveyard') graveyard.push(card); else if(target==='exile') exile.push(card); else if(target==='decktop') deck.unshift(card); renderMyUI(); document.getElementById('searchModal').style.display='none'; broadcastAction({ type: 'PLAY_CARD', cardName: card, targetZone: target }); preloadAllCardImages(); } } }); });
+    document.getElementById('cancelModalAction').onclick=()=>{ document.getElementById('modalSearchActions').style.display='none'; };
+    const oldCloseBtn = document.getElementById('closeTopCardsModalBtn');
+    if(oldCloseBtn) oldCloseBtn.onclick = () => { const modal = document.getElementById('topCardsModal'); if(modal) modal.style.display = 'none'; };
+    
+    // 对手按钮事件
+    document.querySelectorAll('.req-hand-btn').forEach(btn => {
+        btn.addEventListener('click', () => { const oppIdx = parseInt(btn.dataset.opp); requestHandReveal(oppIdx); });
+    });
+    document.querySelectorAll('.req-top-btn').forEach(btn => {
+        btn.addEventListener('click', () => { const oppIdx = parseInt(btn.dataset.opp); requestOpponentTopDeck(oppIdx); });
+    });
+    
+    function setupDragDrop() {
+        document.getElementById('myTopContainer').addEventListener('dragover', e=>e.preventDefault());
+        document.getElementById('myTopContainer').addEventListener('drop', e=>{ e.preventDefault(); handleDropToZone(e, 'battlefieldTop'); });
+        document.getElementById('myBottomContainer').addEventListener('dragover', e=>e.preventDefault());
+        document.getElementById('myBottomContainer').addEventListener('drop', e=>{ e.preventDefault(); handleDropToZone(e, 'battlefieldBottom'); });
+        document.getElementById('myGraveZone').addEventListener('dragover', e=>e.preventDefault());
+        document.getElementById('myGraveZone').addEventListener('drop', e=>{ e.preventDefault(); handleDropToZone(e, 'graveyard'); });
+        document.getElementById('myExileZone').addEventListener('dragover', e=>e.preventDefault());
+        document.getElementById('myExileZone').addEventListener('drop', e=>{ e.preventDefault(); handleDropToZone(e, 'exile'); });
+        document.getElementById('myCommanderZone').addEventListener('dragover', e=>e.preventDefault());
+        document.getElementById('myCommanderZone').addEventListener('drop', e=>{ e.preventDefault(); handleDropToZone(e, 'commander'); });
+    }
+    
+    // 初始化
+    initPeerAuto();
+    let def = getDefaultDecklist();
+    mainboardList = def.mainboard;
+    commanderList = def.commander;
+    resetGameFromMainboard(mainboardList, commanderList);
+    setupDragDrop();
+    fetchCardImage("Island");
+    populateDeckSelect();
+    startAutoRefresh();
+})();
+</script>
+</body>
+</html>
+```
